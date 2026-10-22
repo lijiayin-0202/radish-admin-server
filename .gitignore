@@ -1,0 +1,14 @@
+# 配置文件（带真实密码，不上传）
+config.yaml
+config.debug.yaml
+
+# 日志
+log/
+
+# IDE缓存
+.idea/
+.vscode/
+
+# go编译产物
+*.exe
+*.log
