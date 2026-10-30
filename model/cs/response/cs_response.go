@@ -29,3 +29,13 @@ type CsMessageResponse struct {
 type CsFaqResponse struct {
 	Faq csModel.CsFaq `json:"faq"`
 }
+
+// CsFaqCategoryResponse 常见问题分类详情返回
+type CsFaqCategoryResponse struct {
+	Category csModel.CsFaqCategory `json:"category"`
+}
+
+// CsNoticeResponse 消息通知详情返回
+type CsNoticeResponse struct {
+	Notice csModel.CsNotice `json:"notice"`
+}

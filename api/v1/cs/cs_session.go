@@ -34,7 +34,8 @@ func (a *CsSessionApi) CreateCsSession(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	session, err := csSessionService.CreateCsSession(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	session, err := csSessionService.CreateCsSession(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("创建客服会话失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c)
@@ -97,7 +98,8 @@ func (a *CsSessionApi) UpdateCsSession(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	err = csSessionService.UpdateCsSession(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	err = csSessionService.UpdateCsSession(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("修改客服会话失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c) // 会话状态等业务校验错误直接回传提示

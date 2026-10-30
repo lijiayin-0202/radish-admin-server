@@ -76,8 +76,6 @@ func (s *CsMessageService) GetCsMessageList(search csReq.CsMessageSearch) (list 
 // CreateCsMessage 保存客服会话消息
 // 校验归属会话存在；消息序号不传时按当前会话最大序号+1自动生成；消息发送时间不传时取服务器当前时间
 // 返回落库后的消息实体
-// TODO(ride-hailing)：消息如需附带订单/车辆快照，调用 ride-hailing 微服务「订单查询接口」获取，
-// 本仓库不落地订单/车辆 model
 func (s *CsMessageService) CreateCsMessage(operatorID uint, req csReq.CsMessageCreateReq) (entity csModel.CsMessage, err error) {
 	var session csModel.CsSession
 	if err = global.LUOBO_DB.Where("id = ?", req.SessionID).First(&session).Error; err != nil {

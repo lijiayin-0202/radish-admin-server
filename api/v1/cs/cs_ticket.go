@@ -33,7 +33,8 @@ func (a *CsTicketApi) CreateCsTicket(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	data, err := csTicketService.CreateCsTicket(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	data, err := csTicketService.CreateCsTicket(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("新增客服工单失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c)
@@ -63,7 +64,8 @@ func (a *CsTicketApi) DeleteCsTicket(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	err = csTicketService.DeleteCsTicket(utils.GetUserID(c), idReq.Uint())
+	operatorID := utils.GetUserID(c)
+	err = csTicketService.DeleteCsTicket(operatorID, idReq.Uint())
 	if err != nil {
 		global.GVA_LOG.Error("删除客服工单失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c)
@@ -93,7 +95,8 @@ func (a *CsTicketApi) UpdateCsTicket(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	err = csTicketService.UpdateCsTicket(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	err = csTicketService.UpdateCsTicket(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("修改客服工单失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c) // 状态流转等业务校验错误直接回传提示
@@ -123,7 +126,8 @@ func (a *CsTicketApi) UpdateCsTicketStatus(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	entity, err := csTicketService.UpdateCsTicketStatus(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	entity, err := csTicketService.UpdateCsTicketStatus(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("修改客服工单状态失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c) // 状态流转等业务校验错误直接回传提示
@@ -153,7 +157,8 @@ func (a *CsTicketApi) GetCsTicket(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	data, err := csTicketService.GetCsTicket(utils.GetUserID(c), idReq.Uint())
+	operatorID := utils.GetUserID(c)
+	data, err := csTicketService.GetCsTicket(operatorID, idReq.Uint())
 	if err != nil {
 		global.GVA_LOG.Error("获取客服工单失败!", zap.Error(err))
 		response.FailWithMessage("获取失败", c)

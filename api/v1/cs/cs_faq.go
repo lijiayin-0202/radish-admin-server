@@ -34,7 +34,8 @@ func (a *CsFaqApi) CreateCsFaq(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	data, err := csFaqService.CreateCsFaq(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	data, err := csFaqService.CreateCsFaq(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("新增常见问题失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c)
@@ -94,7 +95,8 @@ func (a *CsFaqApi) UpdateCsFaq(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	err = csFaqService.UpdateCsFaq(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	err = csFaqService.UpdateCsFaq(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("修改常见问题失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c) // 上下架状态等业务校验错误直接回传提示
@@ -131,6 +133,41 @@ func (a *CsFaqApi) GetCsFaq(c *gin.Context) {
 		return
 	}
 	response.OkWithDetailed(csRes.CsFaqResponse{Faq: data}, "获取成功", c)
+}
+
+// SearchCsFaqByKeyword
+// @Tags      CsFaq
+// @Summary   按关键词模糊检索常见问题，匹配问题标题与回答内容
+// @Security  ApiKeyAuth
+// @accept    application/json
+// @Produce   application/json
+// @Param     data  query     csReq.CsFaqSearch                                      true  "关键词, 页码, 每页大小"
+// @Success   200   {object}  response.Response{data=response.PageResult,msg=string}  "关键词检索常见问题"
+// @Router    /api/cs/faq/search [get]
+func (a *CsFaqApi) SearchCsFaqByKeyword(c *gin.Context) {
+	var search csReq.CsFaqSearch
+	err := c.ShouldBindQuery(&search)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	err = utils.Verify(search.PageInfo, utils.PageInfoVerify)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	list, total, err := csFaqService.SearchCsFaqByKeyword(search)
+	if err != nil {
+		global.GVA_LOG.Error("关键词检索常见问题失败!", zap.Error(err))
+		response.FailWithMessage("获取失败", c)
+		return
+	}
+	response.OkWithDetailed(response.PageResult{
+		List:     list,
+		Total:    total,
+		Page:     search.Page,
+		PageSize: search.PageSize,
+	}, "获取成功", c)
 }
 
 // GetCsFaqList

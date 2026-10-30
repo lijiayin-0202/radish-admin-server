@@ -11,13 +11,17 @@ type ApiGroup struct {
 	CsTicketApi
 	CsSessionApi
 	CsMessageApi
+	CsFaqCategoryApi
+	CsNoticeApi
 }
 
 var (
-	csFaqService     = service.ServiceGroupApp.CsServiceGroup.CsFaqService
-	csTicketService  = service.ServiceGroupApp.CsServiceGroup.CsTicketService
-	csSessionService = service.ServiceGroupApp.CsServiceGroup.CsSessionService
-	csMessageService = service.ServiceGroupApp.CsServiceGroup.CsMessageService
+	csFaqService         = service.ServiceGroupApp.CsServiceGroup.CsFaqService
+	csTicketService      = service.ServiceGroupApp.CsServiceGroup.CsTicketService
+	csSessionService     = service.ServiceGroupApp.CsServiceGroup.CsSessionService
+	csMessageService     = service.ServiceGroupApp.CsServiceGroup.CsMessageService
+	csFaqCategoryService = service.ServiceGroupApp.CsServiceGroup.CsFaqCategoryService
+	csNoticeService      = service.ServiceGroupApp.CsServiceGroup.CsNoticeService
 )
 
 // 本模块自用参数校验规则（定义在业务侧，不修改框架 utils/validator.go）
@@ -59,4 +63,20 @@ var (
 		"Answer":   {utils.NotEmpty()},
 	}
 	CsFaqUpdateVerify = utils.Rules{"ID": {utils.NotEmpty()}}
+
+	// FAQ分类：分类名称必填，启用状态在 service 层校验（0禁用，1启用）
+	CsFaqCategoryCreateVerify = utils.Rules{
+		"Title": {utils.NotEmpty()},
+	}
+	CsFaqCategoryUpdateVerify = utils.Rules{"ID": {utils.NotEmpty()}}
+
+	// 消息通知：接收人、标题、内容、消息类型必填；已读状态由 /read 接口标记
+	CsNoticeCreateVerify = utils.Rules{
+		"UserID":  {utils.NotEmpty()},
+		"Title":   {utils.NotEmpty()},
+		"Content": {utils.NotEmpty()},
+		"Type":    {utils.NotEmpty(), utils.Ge("1"), utils.Le("3")}, // 1系统通知，2工单通知，3会话通知
+	}
+	CsNoticeUpdateVerify = utils.Rules{"ID": {utils.NotEmpty()}}
+	CsNoticeReadVerify   = utils.Rules{"ID": {utils.NotEmpty()}}
 )

@@ -34,7 +34,8 @@ func (a *CsMessageApi) CreateCsMessage(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	data, err := csMessageService.CreateCsMessage(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	data, err := csMessageService.CreateCsMessage(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("保存客服会话消息失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c)
@@ -94,7 +95,8 @@ func (a *CsMessageApi) UpdateCsMessage(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	err = csMessageService.UpdateCsMessage(utils.GetUserID(c), req)
+	operatorID := utils.GetUserID(c)
+	err = csMessageService.UpdateCsMessage(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("修改客服会话消息失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c)

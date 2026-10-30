@@ -2,6 +2,7 @@ package cs
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	csModel "github.com/flipped-aurora/gin-vue-admin/server/model/cs"
@@ -43,6 +44,35 @@ func (s *CsFaqService) GetCsFaqList(search csReq.CsFaqSearch) (list []csModel.Cs
 	if search.Status != nil {
 		db = db.Where("status = ?", *search.Status)
 	}
+	err = db.Count(&total).Error
+	if err != nil {
+		return
+	}
+	err = db.Scopes(search.PageInfo.Paginate()).Order("sort DESC").Order("id DESC").Find(&list).Error
+	return
+}
+
+// csFaqKeywordEscape LIKE 通配符转义器，防止用户输入的 %、_ 被数据库当成通配符
+// 反斜杠自身必须先转义：否则关键词末尾的 \ 会吃掉后面的转义符，语义被反转
+var csFaqKeywordEscape = strings.NewReplacer(
+	`\`, `\\`,
+	`%`, `\%`,
+	`_`, `\_`,
+)
+
+// SearchCsFaqByKeyword 按关键词模糊检索常见问题
+// 对问题标题（question）与回答内容（answer）做 LIKE 模糊匹配，复用现有分页结构与列表排序规则
+// 关键词中的 LIKE 通配符（% / _ / \）先转义，再用 ESCAPE '\' 声明转义符，适配 PostgreSQL
+// 关键词为空或纯空白时直接返回空数组，避免无条件下发全表查询
+func (s *CsFaqService) SearchCsFaqByKeyword(search csReq.CsFaqSearch) (list []csModel.CsFaq, total int64, err error) {
+	list = make([]csModel.CsFaq, 0) // 保证空结果返回 [] 而不是 null
+	keyword := strings.TrimSpace(search.Keyword)
+	if keyword == "" {
+		return list, 0, nil
+	}
+	kw := "%" + csFaqKeywordEscape.Replace(keyword) + "%"
+	db := global.LUOBO_DB.Model(&csModel.CsFaq{}).
+		Where("question LIKE ? OR answer LIKE ? ESCAPE '\\'", kw, kw)
 	err = db.Count(&total).Error
 	if err != nil {
 		return

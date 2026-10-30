@@ -200,7 +200,6 @@ CREATE INDEX IF NOT EXISTS idx_cs_faqs_sort       ON cs_faqs (sort);
 -- 说明：CsTicket 模型新增 CreatedBy 字段（记录操作人ID），第 1 段 CREATE TABLE 已同步加列；
 --      已存在的库需手动执行本段。禁止使用 AutoMigrate，请执行后确认再启动服务，
 --      否则 cs_tickets 的查询与新增会报 column "created_by" does not exist
--- TODO(debug)：本地调试用途，随上线评审决定是否保留
 -- ----------------------------
 ALTER TABLE cs_tickets ADD COLUMN IF NOT EXISTS created_by BIGINT DEFAULT 0;
 

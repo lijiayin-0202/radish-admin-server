@@ -3,11 +3,14 @@ package cs
 import (
 	"errors"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	csModel "github.com/flipped-aurora/gin-vue-admin/server/model/cs"
 	csReq "github.com/flipped-aurora/gin-vue-admin/server/model/cs/request"
+	sysModel "github.com/flipped-aurora/gin-vue-admin/server/model/system"
+	"go.uber.org/zap"
 )
 
 type CsSessionService struct{}
@@ -16,6 +19,17 @@ type CsSessionService struct{}
 const (
 	CsSessionStatusOngoing int64 = 1 // 进行中
 	CsSessionStatusEnded   int64 = 2 // 已结束
+)
+
+// csClerkAuthorityName 客服角色名，对应系统库 sys_authorities.authority_name
+// 项目未内置客服角色，需后台「角色管理」创建同名角色并把客服账号授权到该角色
+const csClerkAuthorityName = "客服"
+
+// csClerkAssignCursor 轮询游标：记录下一次分配的客服下标，配合互斥锁保证并发下同一客服轮流接待
+// 说明：进程内内存计数，服务重启后归零，适用于单实例部署
+var (
+	csClerkAssignMu     sync.Mutex
+	csClerkAssignCursor int
 )
 
 // checkCsSessionStatus 校验会话状态取值
@@ -59,11 +73,68 @@ func (s *CsSessionService) GetCsSessionList(search csReq.CsSessionSearch) (list 
 	return
 }
 
+// listOnlineCsClerks 查询在线客服池
+// 数据源为系统库 sys_users：取未冻结（enable=1）且属于客服角色的用户，按用户ID升序保证轮询顺序稳定
+// 说明：GVA 不维护用户在线状态，此处以「未冻结 + 客服角色」近似在线
+func listOnlineCsClerks() (clerks []sysModel.SysUser, err error) {
+	if global.GVA_DB == nil {
+		return nil, errors.New("系统库未初始化，无法查询客服列表")
+	}
+	var authorityIDs []uint
+	if err = global.GVA_DB.Model(&sysModel.SysAuthority{}).
+		Where("authority_name = ?", csClerkAuthorityName).
+		Pluck("authority_id", &authorityIDs).Error; err != nil {
+		global.GVA_LOG.Error("查询客服角色失败!", zap.String("authorityName", csClerkAuthorityName), zap.Error(err))
+		return nil, errors.New("查询客服角色失败")
+	}
+	if len(authorityIDs) == 0 {
+		return nil, errors.New("后台未创建客服角色，无法分配客服")
+	}
+	if err = global.GVA_DB.Model(&sysModel.SysUser{}).
+		Select("id", "username", "nick_name").
+		Where("enable = ?", 1).
+		Where("authority_id IN ?", authorityIDs).
+		Order("id ASC").
+		Find(&clerks).Error; err != nil {
+		global.GVA_LOG.Error("查询在线客服列表失败!", zap.Error(err))
+		return nil, errors.New("查询在线客服列表失败")
+	}
+	return clerks, nil
+}
+
+// pickCsClerkByRoundRobin 在客服池中轮询选取一位客服
+// 进程内游标 + 互斥锁：并发创建会话时同一批客服轮流接待，不会连续分给同一人
+func pickCsClerkByRoundRobin(clerks []sysModel.SysUser) sysModel.SysUser {
+	csClerkAssignMu.Lock()
+	defer csClerkAssignMu.Unlock()
+	idx := csClerkAssignCursor % len(clerks)
+	csClerkAssignCursor = (idx + 1) % len(clerks)
+	return clerks[idx]
+}
+
+// assignCsClerk 自动分配接待客服，返回客服ID与客服姓名
+// 客服池为空或查询失败时返回业务错误，由调用方决定是否继续创建会话
+func assignCsClerk() (clerkID int64, clerkName string, err error) {
+	clerks, err := listOnlineCsClerks()
+	if err != nil {
+		return 0, "", err
+	}
+	if len(clerks) == 0 {
+		return 0, "", errors.New("暂无在线客服，无法创建会话")
+	}
+	clerk := pickCsClerkByRoundRobin(clerks)
+	clerkName = clerk.NickName
+	if clerkName == "" {
+		clerkName = clerk.Username // 昵称未填时退回登录名，避免落库后客服姓名为空
+	}
+	global.GVA_LOG.Info("会话自动分配客服", zap.Uint("clerkId", clerk.ID), zap.String("clerkName", clerkName))
+	return int64(clerk.ID), clerkName, nil
+}
+
 // CreateCsSession 新增客服会话
 // 会话编号由 global.Snow 雪花ID自动生成，前端不传；新建会话固定为进行中，开始时间为空时取服务器当前时间
+// 入参未指定 clerkId 时按轮询自动分配在线客服，写入 clerk_id / clerk_name；无可用客服则会话不创建
 // 返回落库后的会话实体，便于前端拿到 sessionId / sessionNo 继续发送会话消息
-// TODO(ride-hailing)：会话如需展示订单/车辆信息，调用 ride-hailing 微服务「订单查询接口」获取，
-// 本仓库不落地订单/车辆 model
 func (s *CsSessionService) CreateCsSession(operatorID uint, req csReq.CsSessionCreateReq) (entity csModel.CsSession, err error) {
 	startedAt := req.StartedAt
 	if startedAt == nil {
@@ -84,7 +155,15 @@ func (s *CsSessionService) CreateCsSession(operatorID uint, req csReq.CsSessionC
 		entity.TicketID = *req.TicketID
 	}
 	if req.ClerkID != nil {
-		entity.ClerkID = *req.ClerkID
+		entity.ClerkID = *req.ClerkID // 入参指定客服时按指定分配，不消耗轮询游标
+	} else {
+		// 未指定客服：轮询自动分配；无可用客服直接返回业务错误，会话不落库
+		clerkID, clerkName, assignErr := assignCsClerk()
+		if assignErr != nil {
+			return entity, assignErr
+		}
+		entity.ClerkID = clerkID
+		entity.ClerkName = clerkName
 	}
 	err = global.LUOBO_DB.Create(&entity).Error
 	return
@@ -138,8 +217,6 @@ func (s *CsSessionService) DeleteCsSession(id uint) (err error) {
 }
 
 // GetCsSession 获取客服会话详情
-// TODO(ride-hailing)：详情如需展示订单/车辆信息，调用 ride-hailing 微服务「订单查询接口」按 ticket_id 关联工单取 order_id 查询，
-// 本服务不落地订单/车辆 model
 func (s *CsSessionService) GetCsSession(id uint) (entity csModel.CsSession, err error) {
 	err = global.LUOBO_DB.Where("id = ?", id).First(&entity).Error
 	return

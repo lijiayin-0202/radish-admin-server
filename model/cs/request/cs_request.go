@@ -211,3 +211,70 @@ type CsFaqUpdateReq struct {
 	Status   *int64 `json:"status"`   // 状态：0禁用，1启用，nil 不变更
 	Remark   string `json:"remark"`   // 备注
 }
+
+// ==========================================================
+// cs_faq_category 常见问题分类
+// ==========================================================
+
+// CsFaqCategorySearch 常见问题分类分页查询入参
+type CsFaqCategorySearch struct {
+	commonReq.PageInfo
+	Title  string  `json:"title" form:"title"`   // 分类名称，模糊匹配
+	Status *int64  `json:"status" form:"status"` // 状态：0禁用，1启用
+}
+
+// CsFaqCategoryCreateReq 新增常见问题分类入参
+type CsFaqCategoryCreateReq struct {
+	Title  string  `json:"title"`  // 分类名称
+	Sort   int64   `json:"sort"`   // 排序号，不传按库默认0
+	Status *int64  `json:"status"` // 状态：0禁用，1启用；nil 表示按库默认1启用
+	Remark string  `json:"remark"` // 备注
+}
+
+// CsFaqCategoryUpdateReq 修改常见问题分类入参
+// Status 使用指针：传 0 禁用 / 1 启用，nil 表示不变更状态
+type CsFaqCategoryUpdateReq struct {
+	ID     uint    `json:"id"`     // 主键ID
+	Title  string  `json:"title"`  // 分类名称
+	Sort   int64   `json:"sort"`   // 排序号
+	Status *int64  `json:"status"` // 状态：0禁用，1启用，nil 不变更
+	Remark string  `json:"remark"` // 备注
+}
+
+// ==========================================================
+// cs_notice 消息通知
+// ==========================================================
+
+// CsNoticeSearch 消息通知分页查询入参
+type CsNoticeSearch struct {
+	commonReq.PageInfo
+	UserID  *int64  `json:"userId" form:"userId"`   // 接收人用户ID
+	Title   string  `json:"title" form:"title"`     // 消息标题，模糊匹配
+	Keyword string  `json:"keyword" form:"keyword"` // 综合关键词，消息标题/消息内容 模糊匹配
+	IsRead  *int64  `json:"isRead" form:"isRead"`   // 是否已读：0未读，1已读
+	Type    *int64  `json:"type" form:"type"`       // 消息类型：1系统通知，2工单通知，3会话通知
+}
+
+// CsNoticeCreateReq 新增消息通知入参，已读状态固定为未读，由 /read 接口标记
+type CsNoticeCreateReq struct {
+	UserID  int64   `json:"userId"`  // 接收人用户ID
+	Title   string  `json:"title"`   // 消息标题
+	Content string  `json:"content"` // 消息内容
+	Type    int64   `json:"type"`    // 消息类型：1系统通知，2工单通知，3会话通知
+}
+
+// CsNoticeUpdateReq 修改消息通知入参
+// Type / IsRead 使用指针：传值表示变更，nil 表示不变更
+type CsNoticeUpdateReq struct {
+	ID      uint    `json:"id"`      // 主键ID
+	UserID  *int64  `json:"userId"`  // 接收人用户ID，nil 不变更
+	Title   string  `json:"title"`   // 消息标题
+	Content string  `json:"content"` // 消息内容
+	Type    *int64  `json:"type"`    // 消息类型：1系统通知，2工单通知，3会话通知，nil 不变更
+	IsRead  *int64  `json:"isRead"`  // 是否已读：0未读，1已读，nil 不变更
+}
+
+// CsNoticeReadReq 标记消息通知已读入参
+type CsNoticeReadReq struct {
+	ID uint `json:"id"` // 主键ID
+}

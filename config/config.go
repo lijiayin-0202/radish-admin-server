@@ -18,6 +18,10 @@ type Server struct {
 	Oracle Oracle          `mapstructure:"oracle" json:"oracle" yaml:"oracle"`
 	Sqlite Sqlite          `mapstructure:"sqlite" json:"sqlite" yaml:"sqlite"`
 	DBList []SpecializedDB `mapstructure:"db-list" json:"db-list" yaml:"db-list"`
+
+	// 业务库 luobo 的 PostgreSQL 连接配置，独立于框架系统库 pgsql
+	LuoboPgsql Pgsql `mapstructure:"luoboPgsql" json:"luoboPgsql" yaml:"luoboPgsql"`
+
 	// oss
 	Local        Local        `mapstructure:"local" json:"local" yaml:"local"`
 	Qiniu        Qiniu        `mapstructure:"qiniu" json:"qiniu" yaml:"qiniu"`

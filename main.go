@@ -44,6 +44,7 @@ func initializeSystem() {
 	global.GVA_DB = initialize.Gorm() // gorm连接数据库
 	initialize.Timer()
 	initialize.DBList()
+	initialize.LuoboPgSql()   // 初始化业务库 luobo 连接，赋值给 global.LUOBO_DB
 	initialize.SetupHandlers() // 注册全局函数
 	if global.GVA_DB != nil {
 		initialize.RegisterTables() // 初始化表

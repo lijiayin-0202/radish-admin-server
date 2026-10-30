@@ -16,7 +16,8 @@ func (r *CsFaqRouter) InitCsFaqRouter(Router *gin.RouterGroup) {
 		faqRouter.DELETE("", csFaqApi.DeleteCsFaq) // 删除FAQ问答
 	}
 	{
-		faqRouterWithoutRecord.GET("", csFaqApi.GetCsFaq)         // 获取FAQ问答详情
-		faqRouterWithoutRecord.GET("list", csFaqApi.GetCsFaqList) // 分页获取FAQ问答列表
+		faqRouterWithoutRecord.GET("", csFaqApi.GetCsFaq)                 // 获取FAQ问答详情
+		faqRouterWithoutRecord.GET("list", csFaqApi.GetCsFaqList)         // 分页获取FAQ问答列表
+		faqRouterWithoutRecord.GET("search", csFaqApi.SearchCsFaqByKeyword) // 关键词检索FAQ问答
 	}
 }
