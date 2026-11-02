@@ -16,4 +16,7 @@ type ApiGroup struct {
 	PlatformApiGroup platform.ApiGroup
 	TripApiGroup     trip.ApiGroup
 	CsApiGroup       cs.ApiGroup
+	PricingRuleApi
+	ServiceAreaApi
+	StationApi
 }

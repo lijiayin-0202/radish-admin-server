@@ -16,4 +16,8 @@ type RouterGroup struct {
 	Platform platform.RouterGroup
 	Trip     trip.RouterGroup
 	Cs       cs.RouterGroup
+
+	PricingRuleRouter
+	ServiceAreaRouter
+	StationRouter
 }
