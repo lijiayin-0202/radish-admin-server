@@ -16,4 +16,7 @@ type ServiceGroup struct {
 	PlatformServiceGroup platform.ServiceGroup
 	TripServiceGroup     trip.ServiceGroup
 	CsServiceGroup       cs.ServiceGroup
+	PricingRuleService
+	ServiceAreaService
+	StationService
 }
