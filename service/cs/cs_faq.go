@@ -35,8 +35,8 @@ func (s *CsFaqService) GetCsFaqList(search csReq.CsFaqSearch) (list []csModel.Cs
 		kw := "%" + search.Keyword + "%"
 		db = db.Where("question LIKE ? OR answer LIKE ? OR tags LIKE ?", kw, kw, kw)
 	}
-	if search.Category != "" {
-		db = db.Where("category LIKE ?", "%"+search.Category+"%")
+	if search.CategoryID != 0 {
+		db = db.Where("category_id = ?", search.CategoryID)
 	}
 	if search.Tags != "" {
 		db = db.Where("tags LIKE ?", "%"+search.Tags+"%")
@@ -95,7 +95,7 @@ func (s *CsFaqService) CreateCsFaq(operatorID uint, req csReq.CsFaqCreateReq) (e
 	entity = csModel.CsFaq{
 		Question: req.Question,
 		Answer:   req.Answer,
-		Category: req.Category,
+		CategoryID: req.CategoryID,
 		Tags:     req.Tags,
 		Sort:     req.Sort,
 		Status:   *status,
@@ -113,7 +113,7 @@ func (s *CsFaqService) UpdateCsFaq(operatorID uint, req csReq.CsFaqUpdateReq) (e
 	}
 	entity.Question = req.Question
 	entity.Answer = req.Answer
-	entity.Category = req.Category
+	entity.CategoryID = req.CategoryID
 	entity.Tags = req.Tags
 	entity.Sort = req.Sort
 	entity.Remark = req.Remark

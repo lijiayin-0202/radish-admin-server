@@ -41,7 +41,7 @@ func (a *CsFaqApi) CreateCsFaq(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsFaqResponse{Faq: data}, "创建成功", c)
+	response.OkWithDetailed(csRes.CsFaqResponse{Faq: csRes.ToCsFaqDto(data)}, "创建成功", c)
 }
 
 // DeleteCsFaq
@@ -132,7 +132,7 @@ func (a *CsFaqApi) GetCsFaq(c *gin.Context) {
 		response.FailWithMessage("获取失败", c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsFaqResponse{Faq: data}, "获取成功", c)
+	response.OkWithDetailed(csRes.CsFaqResponse{Faq: csRes.ToCsFaqDto(data)}, "获取成功", c)
 }
 
 // SearchCsFaqByKeyword
@@ -163,7 +163,7 @@ func (a *CsFaqApi) SearchCsFaqByKeyword(c *gin.Context) {
 		return
 	}
 	response.OkWithDetailed(response.PageResult{
-		List:     list,
+		List:     csRes.ToCsFaqDtoList(list),
 		Total:    total,
 		Page:     search.Page,
 		PageSize: search.PageSize,
@@ -198,7 +198,7 @@ func (a *CsFaqApi) GetCsFaqList(c *gin.Context) {
 		return
 	}
 	response.OkWithDetailed(response.PageResult{
-		List:     list,
+		List:     csRes.ToCsFaqDtoList(list),
 		Total:    total,
 		Page:     search.Page,
 		PageSize: search.PageSize,

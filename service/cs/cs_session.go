@@ -50,9 +50,6 @@ func (s *CsSessionService) GetCsSessionList(search csReq.CsSessionSearch) (list 
 		kw := "%" + search.Keyword + "%"
 		db = db.Where("session_no LIKE ? OR user_name LIKE ? OR clerk_name LIKE ?", kw, kw, kw)
 	}
-	if search.TicketID != nil {
-		db = db.Where("ticket_id = ?", *search.TicketID)
-	}
 	if search.UserID != nil {
 		db = db.Where("user_id = ?", *search.UserID)
 	}
@@ -151,9 +148,6 @@ func (s *CsSessionService) CreateCsSession(operatorID uint, req csReq.CsSessionC
 		StartedAt: startedAt,
 		Remark:    req.Remark,
 	}
-	if req.TicketID != nil {
-		entity.TicketID = *req.TicketID
-	}
 	if req.ClerkID != nil {
 		entity.ClerkID = *req.ClerkID // 入参指定客服时按指定分配，不消耗轮询游标
 	} else {
@@ -192,9 +186,6 @@ func (s *CsSessionService) UpdateCsSession(operatorID uint, req csReq.CsSessionU
 	entity.UserPhone = req.UserPhone
 	entity.ClerkName = req.ClerkName
 	entity.Remark = req.Remark
-	if req.TicketID != nil {
-		entity.TicketID = *req.TicketID
-	}
 	if req.ClerkID != nil {
 		entity.ClerkID = *req.ClerkID
 	}

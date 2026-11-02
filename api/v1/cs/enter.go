@@ -12,7 +12,9 @@ type ApiGroup struct {
 	CsSessionApi
 	CsMessageApi
 	CsFaqCategoryApi
+	CsNotificationApi
 	CsNoticeApi
+	CsTicketLogApi
 }
 
 var (
@@ -20,8 +22,10 @@ var (
 	csTicketService      = service.ServiceGroupApp.CsServiceGroup.CsTicketService
 	csSessionService     = service.ServiceGroupApp.CsServiceGroup.CsSessionService
 	csMessageService     = service.ServiceGroupApp.CsServiceGroup.CsMessageService
-	csFaqCategoryService = service.ServiceGroupApp.CsServiceGroup.CsFaqCategoryService
-	csNoticeService      = service.ServiceGroupApp.CsServiceGroup.CsNoticeService
+	csFaqCategoryService  = service.ServiceGroupApp.CsServiceGroup.CsFaqCategoryService
+	csNotificationService = service.ServiceGroupApp.CsServiceGroup.CsNotificationService
+	csNoticeService       = service.ServiceGroupApp.CsServiceGroup.CsNoticeService
+	csTicketLogService    = service.ServiceGroupApp.CsServiceGroup.CsTicketLogService
 )
 
 // 本模块自用参数校验规则（定义在业务侧，不修改框架 utils/validator.go）
@@ -38,7 +42,7 @@ var (
 	}
 	CsTicketStatusVerify = utils.Rules{
 		"ID":     {utils.NotEmpty()},
-		"Status": {utils.NotEmpty(), utils.Ge("1"), utils.Le("3")}, // 具体流转在 service 层校验（待受理 -> 处理中 -> 已完结）
+		"Status": {utils.NotEmpty(), utils.Ge("1"), utils.Le("3")}, // 具体流转在 service 层校验（待处理(1) -> 处理中(2) -> 已关闭(3)）
 	}
 
 	// 会话：用户ID必填，会话编号由后端生成
@@ -70,13 +74,24 @@ var (
 	}
 	CsFaqCategoryUpdateVerify = utils.Rules{"ID": {utils.NotEmpty()}}
 
-	// 消息通知：接收人、标题、内容、消息类型必填；已读状态由 /read 接口标记
-	CsNoticeCreateVerify = utils.Rules{
+	// 用户通知推送：接收人、标题、内容、消息类型必填；已读状态由 /read 接口标记
+	CsNotificationCreateVerify = utils.Rules{
 		"UserID":  {utils.NotEmpty()},
 		"Title":   {utils.NotEmpty()},
 		"Content": {utils.NotEmpty()},
 		"Type":    {utils.NotEmpty(), utils.Ge("1"), utils.Le("3")}, // 1系统通知，2工单通知，3会话通知
 	}
+	CsNotificationUpdateVerify = utils.Rules{"ID": {utils.NotEmpty()}}
+	CsNotificationReadVerify   = utils.Rules{"ID": {utils.NotEmpty()}}
+
+	// 站内公告：标题必填
+	CsNoticeCreateVerify = utils.Rules{
+		"Title": {utils.NotEmpty()},
+	}
 	CsNoticeUpdateVerify = utils.Rules{"ID": {utils.NotEmpty()}}
-	CsNoticeReadVerify   = utils.Rules{"ID": {utils.NotEmpty()}}
+
+	// 工单流水：关联工单ID必填，仅新增；不做修改、删除
+	CsTicketLogCreateVerify = utils.Rules{
+		"TicketID": {utils.NotEmpty()},
+	}
 )

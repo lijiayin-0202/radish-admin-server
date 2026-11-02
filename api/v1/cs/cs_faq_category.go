@@ -41,7 +41,7 @@ func (a *CsFaqCategoryApi) CreateCsFaqCategory(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsFaqCategoryResponse{Category: data}, "创建成功", c)
+	response.OkWithDetailed(csRes.CsFaqCategoryResponse{Category: csRes.ToCsFaqCategoryDto(data)}, "创建成功", c)
 }
 
 // DeleteCsFaqCategory
@@ -132,7 +132,7 @@ func (a *CsFaqCategoryApi) GetCsFaqCategory(c *gin.Context) {
 		response.FailWithMessage("获取失败", c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsFaqCategoryResponse{Category: data}, "获取成功", c)
+	response.OkWithDetailed(csRes.CsFaqCategoryResponse{Category: csRes.ToCsFaqCategoryDto(data)}, "获取成功", c)
 }
 
 // GetCsFaqCategoryList
@@ -163,7 +163,7 @@ func (a *CsFaqCategoryApi) GetCsFaqCategoryList(c *gin.Context) {
 		return
 	}
 	response.OkWithDetailed(response.PageResult{
-		List:     list,
+		List:     csRes.ToCsFaqCategoryDtoList(list),
 		Total:    total,
 		Page:     search.Page,
 		PageSize: search.PageSize,

@@ -14,18 +14,18 @@ import (
 
 type CsTicketService struct{}
 
-// 客服工单状态枚举：0待受理，1处理中，2已关闭
-// 流转规则（强制校验）：待受理 -> 处理中、待受理 -> 已关闭、处理中 -> 已关闭
-// 已关闭为终态，禁止回退为待受理/处理中
+// 客服工单状态枚举：1待处理，2处理中，3已关闭
+// 流转规则（强制校验）：待处理 -> 处理中、待处理 -> 已关闭、处理中 -> 已关闭
+// 已关闭为终态，禁止回退为待处理/处理中
 const (
-	CsTicketStatusPending    int64 = 0 // 待受理
-	CsTicketStatusProcessing int64 = 1 // 处理中
-	CsTicketStatusClosed     int64 = 2 // 已关闭
+	CsTicketStatusPending    int64 = 1 // 待处理
+	CsTicketStatusProcessing int64 = 2 // 处理中
+	CsTicketStatusClosed     int64 = 3 // 已关闭
 )
 
 // csTicketStatusName 工单状态名称，用于错误提示与前端展示对齐
 var csTicketStatusName = map[int64]string{
-	CsTicketStatusPending:    "待受理",
+	CsTicketStatusPending:    "待处理",
 	CsTicketStatusProcessing: "处理中",
 	CsTicketStatusClosed:     "已关闭",
 }
@@ -36,10 +36,10 @@ var csTicketStatusFlow = map[int64][]int64{
 	CsTicketStatusProcessing: {CsTicketStatusClosed},
 }
 
-// checkCsTicketStatus 校验工单状态取值是否合法：0待受理，1处理中，2已关闭
+// checkCsTicketStatus 校验工单状态取值是否合法：1待处理，2处理中，3已关闭
 func checkCsTicketStatus(status int64) error {
 	if status != CsTicketStatusPending && status != CsTicketStatusProcessing && status != CsTicketStatusClosed {
-		return errors.New("工单状态取值不合法，仅支持：0待受理，1处理中，2已关闭")
+		return errors.New("工单状态取值不合法，仅支持：1待处理，2处理中，3已关闭")
 	}
 	return nil
 }
@@ -114,9 +114,9 @@ func (s *CsTicketService) GetCsTicketList(search csReq.CsTicketSearch) (list []c
 }
 
 // CreateCsTicket 新增客服工单
-// 工单号由 global.Snow 雪花ID自动生成，前端不传；新建工单固定为待受理
+// 工单号由 global.Snow 雪花ID自动生成，前端不传；新建工单固定为待处理
 func (s *CsTicketService) CreateCsTicket(operatorID uint, req csReq.CsTicketCreateReq) (entity csModel.CsTicket, err error) {
-	// 优先级取值：1低，2中，3高（此处不能用状态常量，状态枚举已改为 0/1/2）
+	// 优先级取值：1低，2中，3高（与工单状态枚举无关，单独校验范围）
 	if req.Priority < 1 || req.Priority > 3 {
 		return entity, errors.New("工单优先级取值不合法，仅支持：1低，2中，3高")
 	}
@@ -132,7 +132,7 @@ func (s *CsTicketService) CreateCsTicket(operatorID uint, req csReq.CsTicketCrea
 		Description:       req.Description,
 		AttachUrls:        req.AttachUrls,
 		AssignedClerkName: req.AssignedClerkName,
-		Status:            CsTicketStatusPending, // 新建工单固定为待受理
+		Status:            CsTicketStatusPending, // 新建工单固定为待处理
 		CreatedBy:         int64(operatorID),     // 创建者：取当前操作人ID
 	}
 	if req.OrderID != nil {
@@ -147,12 +147,13 @@ func (s *CsTicketService) CreateCsTicket(operatorID uint, req csReq.CsTicketCrea
 }
 
 // UpdateCsTicket 修改客服工单，工单号不允许修改
-// 状态变更按流转规则校验：待受理 -> 处理中 / 待受理 -> 已关闭 / 处理中 -> 已关闭；req.Status 为 nil 表示不变更状态
+// 状态变更按流转规则校验：待处理 -> 处理中 / 待处理 -> 已关闭 / 处理中 -> 已关闭；req.Status 为 nil 表示不变更状态
 func (s *CsTicketService) UpdateCsTicket(operatorID uint, req csReq.CsTicketUpdateReq) (err error) {
 	var entity csModel.CsTicket
 	if err = global.LUOBO_DB.Where("id = ?", req.ID).First(&entity).Error; err != nil {
 		return errors.New("工单不存在或已删除")
 	}
+	oldStatus := entity.Status // 记录变更前状态，供状态变更流水使用
 	if req.Priority != 0 && (req.Priority < 1 || req.Priority > 3) {
 		return errors.New("工单优先级取值不合法，仅支持：1低，2中，3高")
 	}
@@ -207,7 +208,24 @@ func (s *CsTicketService) UpdateCsTicket(operatorID uint, req csReq.CsTicketUpda
 	if req.ClosedAt != nil {
 		entity.ClosedAt = req.ClosedAt // 关闭时间空值不覆盖已有内容
 	}
-	return global.LUOBO_DB.Save(&entity).Error
+	err = global.LUOBO_DB.Save(&entity).Error
+	if err != nil {
+		return err
+	}
+	// 业务规则：工单状态实际发生变更时，自动写入 cs_ticket_logs，记录变更前/后状态与操作人
+	if req.Status != nil && oldStatus != *req.Status {
+		logErr := global.LUOBO_DB.Create(&csModel.CsTicketLog{
+			TicketID:     int64(req.ID),
+			OperatorID:   int64(operatorID),
+			StatusBefore: oldStatus,
+			StatusAfter:  *req.Status,
+			Remark:       req.Remark,
+		}).Error
+		if logErr != nil {
+			global.GVA_LOG.Error("记录工单状态变更流水失败!", zap.Uint("ticketId", req.ID), zap.Int64("oldStatus", oldStatus), zap.Int64("newStatus", *req.Status), zap.Error(logErr))
+		}
+	}
+	return nil
 }
 
 // DeleteCsTicket 删除客服工单（软删除，依赖 global.GVA_MODEL 自带的 deleted_at）
@@ -222,7 +240,7 @@ func (s *CsTicketService) DeleteCsTicket(operatorID uint, id uint) (err error) {
 
 // UpdateCsTicketStatus 修改客服工单状态
 // 必填入参只有工单ID与状态，处理客服、解决/关闭时间、备注均为可选补充字段
-// 状态流转强制校验：待受理(0) -> 处理中(1)、待受理(0) -> 已关闭(2)、处理中(1) -> 已关闭(2)；
+// 状态流转强制校验：待处理(1) -> 处理中(2)、待处理(1) -> 已关闭(3)、处理中(2) -> 已关闭(3)；
 // 已关闭(2)为终态，禁止回退到待受理/处理中；状态取值或流转非法时返回业务错误，不 panic
 func (s *CsTicketService) UpdateCsTicketStatus(operatorID uint, req csReq.CsTicketStatusReq) (entity csModel.CsTicket, err error) {
 	if err = global.LUOBO_DB.Where("id = ?", req.ID).First(&entity).Error; err != nil {
@@ -274,7 +292,20 @@ func (s *CsTicketService) UpdateCsTicketStatus(operatorID uint, req csReq.CsTick
 		zap.Int64("oldStatus", oldStatus),
 		zap.Int64("newStatus", req.Status))
 
-	err = global.LUOBO_DB.Save(&entity).Error
+	if err = global.LUOBO_DB.Save(&entity).Error; err != nil {
+		return
+	}
+	// 业务规则：工单状态变更必须留痕，自动写入 cs_ticket_logs，记录变更前/后状态与操作人
+	logErr := global.LUOBO_DB.Create(&csModel.CsTicketLog{
+		TicketID:     int64(req.ID),
+		OperatorID:   int64(operatorID),
+		StatusBefore: oldStatus,
+		StatusAfter:  req.Status,
+		Remark:       req.Remark,
+	}).Error
+	if logErr != nil {
+		global.GVA_LOG.Error("记录工单状态变更流水失败!", zap.Uint("ticketId", req.ID), zap.Int64("oldStatus", oldStatus), zap.Int64("newStatus", req.Status), zap.Error(logErr))
+	}
 	return
 }
 

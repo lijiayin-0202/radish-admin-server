@@ -14,7 +14,7 @@ type CsFaqCategory struct {
 	Remark string `json:"remark" form:"remark" gorm:"column:remark;type:text;comment:备注"`
 }
 
-// TableName CsFaqCategory 自定义表名 cs_faq_category
+// TableName CsFaqCategory 自定义表名 cs_faq_categories
 func (CsFaqCategory) TableName() string {
-	return "cs_faq_category"
+	return "cs_faq_categories"
 }

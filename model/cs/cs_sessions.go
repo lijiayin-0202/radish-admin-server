@@ -12,7 +12,6 @@ import (
 type CsSession struct {
 	global.GVA_MODEL
 	SessionNo      string     `json:"sessionNo" form:"sessionNo" gorm:"column:session_no;type:varchar(64);not null;default:'';comment:会话编号"`
-	TicketID       int64      `json:"ticketId" form:"ticketId" gorm:"column:ticket_id;type:bigint;not null;default:0;comment:关联工单ID"`
 	UserID         int64      `json:"userId" form:"userId" gorm:"column:user_id;type:bigint;not null;default:0;comment:用户ID"`
 	UserName       string     `json:"userName" form:"userName" gorm:"column:user_name;type:varchar(128);not null;default:'';comment:用户姓名"`
 	UserPhone      string     `json:"userPhone" form:"userPhone" gorm:"column:user_phone;type:varchar(32);not null;default:'';comment:用户手机号"`

@@ -98,7 +98,6 @@ type CsSessionSearch struct {
 	commonReq.PageInfo
 	SessionNo string  `json:"sessionNo" form:"sessionNo"` // 会话编号，精确匹配
 	Keyword   string  `json:"keyword" form:"keyword"`     // 综合关键词，会话编号/用户姓名/客服姓名 模糊匹配
-	TicketID  *int64  `json:"ticketId" form:"ticketId"`   // 关联工单ID
 	UserID    *int64  `json:"userId" form:"userId"`       // 用户ID
 	UserPhone string  `json:"userPhone" form:"userPhone"` // 用户手机号，精确匹配
 	ClerkID   *int64  `json:"clerkId" form:"clerkId"`     // 客服ID
@@ -109,7 +108,6 @@ type CsSessionSearch struct {
 // 会话编号由后端 global.Snow 雪花ID自动生成，前端不传；新建会话固定为进行中
 // TODO(ride-hailing)：会话如需展示订单/车辆信息，调用 ride-hailing 微服务「订单查询接口」获取
 type CsSessionCreateReq struct {
-	TicketID  *int64     `json:"ticketId"`  // 关联工单ID，无工单可不传
 	UserID    int64      `json:"userId"`    // 用户ID
 	UserName  string     `json:"userName"`  // 用户姓名
 	UserPhone string     `json:"userPhone"` // 用户手机号
@@ -123,7 +121,6 @@ type CsSessionCreateReq struct {
 // Status 使用指针：传 1 进行中 / 2 已结束，nil 表示不变更会话状态
 type CsSessionUpdateReq struct {
 	ID        uint       `json:"id"`        // 主键ID
-	TicketID  *int64     `json:"ticketId"`  // 关联工单ID
 	UserID    int64      `json:"userId"`    // 用户ID
 	UserName  string     `json:"userName"`  // 用户姓名
 	UserPhone string     `json:"userPhone"` // 用户手机号
@@ -183,7 +180,7 @@ type CsFaqSearch struct {
 	commonReq.PageInfo
 	Question string  `json:"question" form:"question"` // 问题标题，模糊匹配
 	Keyword  string  `json:"keyword" form:"keyword"`   // 综合关键词，问题标题/回答内容/标签 模糊匹配
-	Category string  `json:"category" form:"category"` // 问题分类，模糊匹配
+	CategoryID uint64 `json:"categoryID" form:"categoryID"` // FAQ分类ID
 	Tags     string  `json:"tags" form:"tags"`         // 标签，模糊匹配
 	Status   *int64  `json:"status" form:"status"`     // 状态：0禁用，1启用
 }
@@ -192,7 +189,7 @@ type CsFaqSearch struct {
 type CsFaqCreateReq struct {
 	Question string  `json:"question"` // 问题标题
 	Answer   string  `json:"answer"`   // 回答内容
-	Category string  `json:"category"` // 问题分类
+	CategoryID uint64 `json:"categoryID"` // FAQ分类ID
 	Tags     string  `json:"tags"`     // 标签
 	Sort     int64   `json:"sort"`     // 排序号，不传按库默认0
 	Status   *int64  `json:"status"`   // 状态：0禁用，1启用；nil 表示按库默认1启用
@@ -205,7 +202,7 @@ type CsFaqUpdateReq struct {
 	ID       uint   `json:"id"`       // 主键ID
 	Question string `json:"question"` // 问题标题
 	Answer   string `json:"answer"`   // 回答内容
-	Category string `json:"category"` // 问题分类
+	CategoryID uint64 `json:"categoryID"` // FAQ分类ID
 	Tags     string `json:"tags"`     // 标签
 	Sort     int64  `json:"sort"`     // 排序号
 	Status   *int64 `json:"status"`   // 状态：0禁用，1启用，nil 不变更
@@ -242,11 +239,11 @@ type CsFaqCategoryUpdateReq struct {
 }
 
 // ==========================================================
-// cs_notice 消息通知
+// cs_notifications 用户通知推送
 // ==========================================================
 
-// CsNoticeSearch 消息通知分页查询入参
-type CsNoticeSearch struct {
+// CsNotificationSearch 用户通知分页查询入参
+type CsNotificationSearch struct {
 	commonReq.PageInfo
 	UserID  *int64  `json:"userId" form:"userId"`   // 接收人用户ID
 	Title   string  `json:"title" form:"title"`     // 消息标题，模糊匹配
@@ -255,17 +252,17 @@ type CsNoticeSearch struct {
 	Type    *int64  `json:"type" form:"type"`       // 消息类型：1系统通知，2工单通知，3会话通知
 }
 
-// CsNoticeCreateReq 新增消息通知入参，已读状态固定为未读，由 /read 接口标记
-type CsNoticeCreateReq struct {
+// CsNotificationCreateReq 新增用户通知入参，已读状态固定为未读，由 /read 接口标记
+type CsNotificationCreateReq struct {
 	UserID  int64   `json:"userId"`  // 接收人用户ID
 	Title   string  `json:"title"`   // 消息标题
 	Content string  `json:"content"` // 消息内容
 	Type    int64   `json:"type"`    // 消息类型：1系统通知，2工单通知，3会话通知
 }
 
-// CsNoticeUpdateReq 修改消息通知入参
+// CsNotificationUpdateReq 修改用户通知入参
 // Type / IsRead 使用指针：传值表示变更，nil 表示不变更
-type CsNoticeUpdateReq struct {
+type CsNotificationUpdateReq struct {
 	ID      uint    `json:"id"`      // 主键ID
 	UserID  *int64  `json:"userId"`  // 接收人用户ID，nil 不变更
 	Title   string  `json:"title"`   // 消息标题
@@ -274,7 +271,61 @@ type CsNoticeUpdateReq struct {
 	IsRead  *int64  `json:"isRead"`  // 是否已读：0未读，1已读，nil 不变更
 }
 
-// CsNoticeReadReq 标记消息通知已读入参
-type CsNoticeReadReq struct {
+// CsNotificationReadReq 标记用户通知已读入参
+type CsNotificationReadReq struct {
 	ID uint `json:"id"` // 主键ID
+}
+
+// ==========================================================
+// cs_notice 站内公告（后台管理）
+// ==========================================================
+
+// CsNoticeSearch 站内公告分页查询入参
+type CsNoticeSearch struct {
+	commonReq.PageInfo
+	Title   string  `json:"title" form:"title"`     // 公告标题，模糊匹配
+	Keyword string  `json:"keyword" form:"keyword"` // 综合关键词，标题/内容 模糊匹配
+	Type    *int64  `json:"type" form:"type"`       // 公告类型：1系统公告，2活动公告，3维护公告
+	Status  *int64  `json:"status" form:"status"`   // 状态：0草稿，1已发布
+}
+
+// CsNoticeCreateReq 新增站内公告入参
+type CsNoticeCreateReq struct {
+	Title   string `json:"title"`   // 公告标题
+	Content string `json:"content"` // 公告内容
+	Type    int64  `json:"type"`    // 公告类型：1系统公告，2活动公告，3维护公告
+	Status  int64  `json:"status"`  // 状态：0草稿，1已发布
+	Sort    int64  `json:"sort"`    // 排序号
+}
+
+// CsNoticeUpdateReq 修改站内公告入参
+type CsNoticeUpdateReq struct {
+	ID      uint   `json:"id"`      // 主键ID
+	Title   string `json:"title"`   // 公告标题
+	Content string `json:"content"` // 公告内容
+	Type    int64  `json:"type"`    // 公告类型：1系统公告，2活动公告，3维护公告
+	Status  int64  `json:"status"`  // 状态：0草稿，1已发布
+	Sort    int64  `json:"sort"`    // 排序号
+}
+
+// ==========================================================
+// cs_ticket_logs 工单流水
+// ==========================================================
+
+// CsTicketLogSearch 工单流水分页查询入参，支持按工单ID、操作人、变更后状态与关键词筛选
+type CsTicketLogSearch struct {
+	commonReq.PageInfo
+	TicketID    *int64  `json:"ticketId" form:"ticketId"`       // 关联工单ID
+	OperatorID  *int64  `json:"operatorId" form:"operatorId"`   // 操作人ID
+	StatusAfter *int64  `json:"statusAfter" form:"statusAfter"` // 变更后状态
+	Keyword     string  `json:"keyword" form:"keyword"`         // 综合关键词，操作备注 模糊匹配
+}
+
+// CsTicketLogCreateReq 新增工单流水入参
+// 操作人ID由后端从当前登录用户取，前端可不传；操作时间取记录创建时间
+type CsTicketLogCreateReq struct {
+	TicketID     int64  `json:"ticketId"`     // 关联工单ID
+	StatusBefore int64  `json:"statusBefore"` // 变更前状态
+	StatusAfter  int64  `json:"statusAfter"`  // 变更后状态
+	Remark       string `json:"remark"`       // 操作备注
 }

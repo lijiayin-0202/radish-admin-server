@@ -135,7 +135,7 @@ func (a *CsSessionApi) GetCsSession(c *gin.Context) {
 		response.FailWithMessage("获取失败", c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsSessionResponse{Session: data}, "获取成功", c)
+	response.OkWithDetailed(csRes.CsSessionResponse{Session: csRes.ToCsSessionDto(data)}, "获取成功", c)
 }
 
 // GetCsSessionList
@@ -166,7 +166,7 @@ func (a *CsSessionApi) GetCsSessionList(c *gin.Context) {
 		return
 	}
 	response.OkWithDetailed(response.PageResult{
-		List:     list,
+		List:     csRes.ToCsSessionDtoList(list),
 		Total:    total,
 		Page:     search.Page,
 		PageSize: search.PageSize,

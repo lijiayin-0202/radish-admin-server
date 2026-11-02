@@ -10,7 +10,7 @@ type CsFaq struct {
 	global.GVA_MODEL
 	Question    string `json:"question" form:"question" gorm:"column:question;type:varchar(512);not null;default:'';comment:问题标题"`
 	Answer      string `json:"answer" form:"answer" gorm:"column:answer;type:text;not null;comment:回答内容"`
-	Category    string `json:"category" form:"category" gorm:"column:category;type:varchar(128);not null;default:'';comment:问题分类"`
+	CategoryID  uint64 `json:"categoryID" form:"categoryID" gorm:"column:category_id;type:bigint;comment:FAQ分类ID"`
 	Tags        string `json:"tags" form:"tags" gorm:"column:tags;type:varchar(256);not null;default:'';comment:标签"`
 	Sort        int64  `json:"sort" form:"sort" gorm:"column:sort;not null;default:0;comment:排序号"`
 	Status      int64  `json:"status" form:"status" gorm:"column:status;not null;default:1;comment:状态：0禁用，1启用"`

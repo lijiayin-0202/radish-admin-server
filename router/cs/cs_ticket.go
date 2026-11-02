@@ -13,13 +13,13 @@ func (r *CsTicketRouter) InitCsTicketRouter(Router *gin.RouterGroup) {
 	ticketRouter := Router.Group("ticket").Use(middleware.OperationRecord())
 	ticketRouterWithoutRecord := Router.Group("ticket")
 	{
-		ticketRouter.POST("", csTicketApi.CreateCsTicket)                 // 创建客服工单
-		ticketRouter.PUT("", csTicketApi.UpdateCsTicket)                  // 修改客服工单
-		ticketRouter.PUT("status", csTicketApi.UpdateCsTicketStatus)      // 修改客服工单状态
-		ticketRouter.DELETE(":id", csTicketApi.DeleteCsTicket)            // 删除客服工单
+		ticketRouter.POST("", csTicketApi.CreateCsTicket)            // 创建客服工单
+		ticketRouter.PUT(":id", csTicketApi.UpdateCsTicket)          // 修改客服工单
+		ticketRouter.PUT("status", csTicketApi.UpdateCsTicketStatus) // 修改客服工单状态
+		ticketRouter.DELETE(":id", csTicketApi.DeleteCsTicket)       // 删除客服工单
 	}
 	{
-		ticketRouterWithoutRecord.GET(":id", csTicketApi.GetCsTicket)         // 获取客服工单详情
-		ticketRouterWithoutRecord.GET("list", csTicketApi.GetCsTicketList)    // 分页获取客服工单列表
+		ticketRouterWithoutRecord.GET(":id", csTicketApi.GetCsTicket)      // 获取客服工单详情
+		ticketRouterWithoutRecord.GET("list", csTicketApi.GetCsTicketList) // 分页获取客服工单列表
 	}
 }

@@ -12,7 +12,9 @@ type RouterGroup struct {
 	CsSessionRouter
 	CsMessageRouter
 	CsFaqCategoryRouter
+	CsNotificationRouter
 	CsNoticeRouter
+	CsTicketLogRouter
 }
 
 var (
@@ -20,6 +22,8 @@ var (
 	csTicketApi      = api.ApiGroupApp.CsApiGroup.CsTicketApi
 	csSessionApi     = api.ApiGroupApp.CsApiGroup.CsSessionApi
 	csMessageApi     = api.ApiGroupApp.CsApiGroup.CsMessageApi
-	csFaqCategoryApi = api.ApiGroupApp.CsApiGroup.CsFaqCategoryApi
-	csNoticeApi      = api.ApiGroupApp.CsApiGroup.CsNoticeApi
+	csFaqCategoryApi  = api.ApiGroupApp.CsApiGroup.CsFaqCategoryApi
+	csNotificationApi = api.ApiGroupApp.CsApiGroup.CsNotificationApi
+	csNoticeApi       = api.ApiGroupApp.CsApiGroup.CsNoticeApi
+	csTicketLogApi    = api.ApiGroupApp.CsApiGroup.CsTicketLogApi
 )

@@ -23,7 +23,9 @@ func initBizRouter(routers ...*gin.RouterGroup) {
 	csRouter.InitCsMessageRouter(csGroup)
 	csRouter.InitCsFaqRouter(csGroup)
 	csRouter.InitCsFaqCategoryRouter(csGroup)
+	csRouter.InitCsNotificationRouter(csGroup)
 	csRouter.InitCsNoticeRouter(csGroup)
+	csRouter.InitCsTicketLogRouter(csGroup)
 
 	holder(publicGroup, privateGroup)
 }

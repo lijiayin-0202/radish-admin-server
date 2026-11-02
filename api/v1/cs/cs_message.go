@@ -41,7 +41,7 @@ func (a *CsMessageApi) CreateCsMessage(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsMessageResponse{Message: data}, "创建成功", c)
+	response.OkWithDetailed(csRes.CsMessageResponse{Message: csRes.ToCsMessageDto(data)}, "创建成功", c)
 }
 
 // DeleteCsMessage
@@ -132,7 +132,7 @@ func (a *CsMessageApi) GetCsMessage(c *gin.Context) {
 		response.FailWithMessage("获取失败", c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsMessageResponse{Message: data}, "获取成功", c)
+	response.OkWithDetailed(csRes.CsMessageResponse{Message: csRes.ToCsMessageDto(data)}, "获取成功", c)
 }
 
 // GetCsMessageList
@@ -163,7 +163,7 @@ func (a *CsMessageApi) GetCsMessageList(c *gin.Context) {
 		return
 	}
 	response.OkWithDetailed(response.PageResult{
-		List:     list,
+		List:     csRes.ToCsMessageDtoList(list),
 		Total:    total,
 		Page:     search.Page,
 		PageSize: search.PageSize,

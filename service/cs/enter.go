@@ -8,5 +8,7 @@ type ServiceGroup struct {
 	CsSessionService
 	CsMessageService
 	CsFaqCategoryService
+	CsNotificationService
 	CsNoticeService
+	CsTicketLogService
 }

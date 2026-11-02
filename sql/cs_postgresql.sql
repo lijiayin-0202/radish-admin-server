@@ -72,7 +72,6 @@ CREATE TABLE IF NOT EXISTS cs_sessions (
     updated_at       TIMESTAMPTZ,
     deleted_at       TIMESTAMPTZ,
     session_no       VARCHAR(64)   NOT NULL DEFAULT '',
-    ticket_id        BIGINT        DEFAULT 0,
     user_id          BIGINT        DEFAULT 0,
     user_name        VARCHAR(128)  DEFAULT '',
     user_phone       VARCHAR(32)   DEFAULT '',
@@ -95,7 +94,6 @@ COMMENT ON COLUMN cs_sessions.created_at       IS '创建时间';
 COMMENT ON COLUMN cs_sessions.updated_at       IS '更新时间';
 COMMENT ON COLUMN cs_sessions.deleted_at       IS '删除时间（GVA软删除）';
 COMMENT ON COLUMN cs_sessions.session_no       IS '会话编号';
-COMMENT ON COLUMN cs_sessions.ticket_id        IS '关联工单ID';
 COMMENT ON COLUMN cs_sessions.user_id          IS '用户ID';
 COMMENT ON COLUMN cs_sessions.user_name        IS '用户姓名';
 COMMENT ON COLUMN cs_sessions.user_phone       IS '用户手机号';
@@ -113,7 +111,6 @@ COMMENT ON COLUMN cs_sessions.remark           IS '备注';
 
 CREATE INDEX IF NOT EXISTS idx_cs_sessions_deleted_at ON cs_sessions (deleted_at);
 CREATE INDEX IF NOT EXISTS idx_cs_sessions_session_no ON cs_sessions (session_no);
-CREATE INDEX IF NOT EXISTS idx_cs_sessions_ticket_id  ON cs_sessions (ticket_id);
 CREATE INDEX IF NOT EXISTS idx_cs_sessions_user_id    ON cs_sessions (user_id);
 CREATE INDEX IF NOT EXISTS idx_cs_sessions_clerk_id   ON cs_sessions (clerk_id);
 CREATE INDEX IF NOT EXISTS idx_cs_sessions_status     ON cs_sessions (status);
@@ -204,3 +201,79 @@ CREATE INDEX IF NOT EXISTS idx_cs_faqs_sort       ON cs_faqs (sort);
 ALTER TABLE cs_tickets ADD COLUMN IF NOT EXISTS created_by BIGINT DEFAULT 0;
 
 COMMENT ON COLUMN cs_tickets.created_by IS '创建者（操作人ID）';
+
+-- ----------------------------
+-- 6. 工单流水(状态变更日志)表 cs_ticket_logs
+-- 说明：仅新增与查询，无修改、删除；操作时间复用记录创建时间（created_at）
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS cs_ticket_logs (
+    id            BIGSERIAL     PRIMARY KEY,
+    created_at    TIMESTAMPTZ,
+    updated_at    TIMESTAMPTZ,
+    deleted_at    TIMESTAMPTZ,
+    ticket_id     BIGINT        DEFAULT 0,
+    operator_id   BIGINT        DEFAULT 0,
+    status_before BIGINT        DEFAULT 0,
+    status_after  BIGINT        DEFAULT 0,
+    remark        VARCHAR(512)  NOT NULL DEFAULT ''
+);
+
+-- 注释统一包在 DO 块中：表/字段存在则正常写入；字段不存在（如历史库列名不一致）则静默跳过，
+-- 保证整段 SQL 可重复执行、多次运行不报错（COMMENT 无 IF NOT EXISTS 语法，故用异常捕获兜底）
+DO $$
+BEGIN
+    COMMENT ON TABLE cs_ticket_logs IS '工单流水(状态变更日志)表';
+    COMMENT ON COLUMN cs_ticket_logs.id            IS '主键ID';
+    COMMENT ON COLUMN cs_ticket_logs.created_at    IS '创建时间（即操作时间）';
+    COMMENT ON COLUMN cs_ticket_logs.updated_at    IS '更新时间';
+    COMMENT ON COLUMN cs_ticket_logs.deleted_at    IS '删除时间（GVA软删除）';
+    COMMENT ON COLUMN cs_ticket_logs.ticket_id     IS '关联工单ID';
+    COMMENT ON COLUMN cs_ticket_logs.operator_id   IS '操作人ID';
+    COMMENT ON COLUMN cs_ticket_logs.status_before IS '变更前状态';
+    COMMENT ON COLUMN cs_ticket_logs.status_after  IS '变更后状态';
+    COMMENT ON COLUMN cs_ticket_logs.remark        IS '操作备注';
+EXCEPTION
+    WHEN undefined_table  THEN NULL;
+    WHEN undefined_column THEN NULL;
+END $$;
+
+CREATE INDEX IF NOT EXISTS idx_cs_ticket_logs_deleted_at   ON cs_ticket_logs (deleted_at);
+CREATE INDEX IF NOT EXISTS idx_cs_ticket_logs_ticket_id    ON cs_ticket_logs (ticket_id);
+CREATE INDEX IF NOT EXISTS idx_cs_ticket_logs_operator_id  ON cs_ticket_logs (operator_id);
+CREATE INDEX IF NOT EXISTS idx_cs_ticket_logs_status_after ON cs_ticket_logs (status_after);
+
+-- ----------------------------
+-- 7. 站内公告表 cs_notice
+-- 说明：后台公告管理（增删改查），与 cs_notifications(用户通知推送) 相互独立
+-- ----------------------------
+CREATE TABLE IF NOT EXISTS cs_notice (
+    id          BIGSERIAL     PRIMARY KEY,
+    created_at  TIMESTAMPTZ,
+    updated_at  TIMESTAMPTZ,
+    deleted_at  TIMESTAMPTZ,
+    title       VARCHAR(256)  NOT NULL DEFAULT '',
+    content     TEXT          NOT NULL DEFAULT '',
+    type        INTEGER       DEFAULT 1,
+    status      INTEGER       DEFAULT 1,
+    sort        INTEGER       DEFAULT 0,
+    created_by  BIGINT        DEFAULT 0,
+    remark      TEXT
+);
+
+COMMENT ON TABLE cs_notice IS '站内公告表';
+COMMENT ON COLUMN cs_notice.id          IS '主键ID';
+COMMENT ON COLUMN cs_notice.created_at  IS '创建时间';
+COMMENT ON COLUMN cs_notice.updated_at  IS '更新时间';
+COMMENT ON COLUMN cs_notice.deleted_at  IS '删除时间（GVA软删除）';
+COMMENT ON COLUMN cs_notice.title       IS '公告标题';
+COMMENT ON COLUMN cs_notice.content     IS '公告内容';
+COMMENT ON COLUMN cs_notice.type        IS '公告类型：1系统公告，2活动公告，3维护公告';
+COMMENT ON COLUMN cs_notice.status      IS '状态：0草稿，1已发布';
+COMMENT ON COLUMN cs_notice.sort        IS '排序号';
+COMMENT ON COLUMN cs_notice.created_by  IS '创建者（操作人ID）';
+COMMENT ON COLUMN cs_notice.remark      IS '备注';
+
+CREATE INDEX IF NOT EXISTS idx_cs_notice_deleted_at ON cs_notice (deleted_at);
+CREATE INDEX IF NOT EXISTS idx_cs_notice_type       ON cs_notice (type);
+CREATE INDEX IF NOT EXISTS idx_cs_notice_status     ON cs_notice (status);
+CREATE INDEX IF NOT EXISTS idx_cs_notice_sort       ON cs_notice (sort);

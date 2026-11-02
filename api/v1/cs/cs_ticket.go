@@ -34,13 +34,14 @@ func (a *CsTicketApi) CreateCsTicket(c *gin.Context) {
 		return
 	}
 	operatorID := utils.GetUserID(c)
+
 	data, err := csTicketService.CreateCsTicket(operatorID, req)
 	if err != nil {
 		global.GVA_LOG.Error("新增客服工单失败!", zap.Error(err))
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsTicketResponse{Ticket: data}, "创建成功", c)
+	response.OkWithDetailed(csRes.CsTicketResponse{Ticket: csRes.ToCsTicketDto(data)}, "创建成功", c)
 }
 
 // DeleteCsTicket
@@ -76,20 +77,28 @@ func (a *CsTicketApi) DeleteCsTicket(c *gin.Context) {
 
 // UpdateCsTicket
 // @Tags      CsTicket
-// @Summary   修改客服工单，工单号不允许修改；状态流转：待受理(1) -> 处理中(2) -> 已完结(3)
+// @Summary   修改完整客服工单，工单号不允许修改；状态流转：待处理(1) -> 处理中(2) / 待处理(1) -> 已关闭(3) / 处理中(2) -> 已关闭(3)
 // @Security  ApiKeyAuth
 // @accept    application/json
 // @Produce   application/json
-// @Param     data  body      csReq.CsTicketUpdateReq          true  "工单ID, 工单信息, 状态, 分配客服, 解决时间, 关闭时间"
-// @Success   200   {object}  response.Response{msg=string}     "修改客服工单"
-// @Router    /api/cs/ticket [put]
+// @Param     id   path      csReq.CsTicketIdReq                true  "工单ID"
+// @Param     data body      csReq.CsTicketUpdateReq            true  "工单信息, 状态, 分配客服, 解决时间, 关闭时间"
+// @Success   200  {object}  response.Response{msg=string}      "修改客服工单"
+// @Router    /api/cs/ticket/{id} [put]
 func (a *CsTicketApi) UpdateCsTicket(c *gin.Context) {
-	var req csReq.CsTicketUpdateReq
-	err := c.ShouldBindJSON(&req)
+	var idReq csReq.CsTicketIdReq
+	err := c.ShouldBindUri(&idReq)
 	if err != nil {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
+	var req csReq.CsTicketUpdateReq
+	err = c.ShouldBindJSON(&req)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	req.ID = idReq.ID // 工单ID以路径参数为准，覆盖 body 中可能携带的 id
 	err = utils.Verify(req, CsTicketUpdateVerify)
 	if err != nil {
 		response.FailWithMessage(err.Error(), c)
@@ -107,7 +116,7 @@ func (a *CsTicketApi) UpdateCsTicket(c *gin.Context) {
 
 // UpdateCsTicketStatus
 // @Tags      CsTicket
-// @Summary   修改客服工单状态，按流转规则校验：待受理(1) -> 处理中(2) -> 已完结(3)
+// @Summary   修改客服工单状态，按流转规则校验：待处理(1) -> 处理中(2) -> 已关闭(3)
 // @Security  ApiKeyAuth
 // @accept    application/json
 // @Produce   application/json
@@ -133,7 +142,7 @@ func (a *CsTicketApi) UpdateCsTicketStatus(c *gin.Context) {
 		response.FailWithMessage(err.Error(), c) // 状态流转等业务校验错误直接回传提示
 		return
 	}
-	response.OkWithDetailed(csRes.CsTicketResponse{Ticket: entity}, "更新成功", c)
+	response.OkWithDetailed(csRes.CsTicketResponse{Ticket: csRes.ToCsTicketDto(entity)}, "更新成功", c)
 }
 
 // GetCsTicket
@@ -164,7 +173,7 @@ func (a *CsTicketApi) GetCsTicket(c *gin.Context) {
 		response.FailWithMessage("获取失败", c)
 		return
 	}
-	response.OkWithDetailed(csRes.CsTicketResponse{Ticket: data}, "获取成功", c)
+	response.OkWithDetailed(csRes.CsTicketResponse{Ticket: csRes.ToCsTicketDto(data)}, "获取成功", c)
 }
 
 // GetCsTicketList
@@ -195,7 +204,7 @@ func (a *CsTicketApi) GetCsTicketList(c *gin.Context) {
 		return
 	}
 	response.OkWithDetailed(response.PageResult{
-		List:     list,
+		List:     csRes.ToCsTicketDtoList(list),
 		Total:    total,
 		Page:     search.Page,
 		PageSize: search.PageSize,

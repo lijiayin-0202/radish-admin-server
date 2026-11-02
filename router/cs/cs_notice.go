@@ -11,13 +11,12 @@ func (r *CsNoticeRouter) InitCsNoticeRouter(Router *gin.RouterGroup) {
 	noticeRouter := Router.Group("notice").Use(middleware.OperationRecord())
 	noticeRouterWithoutRecord := Router.Group("notice")
 	{
-		noticeRouter.POST("", csNoticeApi.CreateCsNotice)    // 新增消息通知
-		noticeRouter.PUT("", csNoticeApi.UpdateCsNotice)     // 修改消息通知
-		noticeRouter.PUT("read", csNoticeApi.ReadCsNotice)   // 标记消息通知已读
-		noticeRouter.DELETE("", csNoticeApi.DeleteCsNotice)  // 删除消息通知
+		noticeRouter.POST("", csNoticeApi.CreateCsNotice)   // 新增站内公告
+		noticeRouter.PUT("", csNoticeApi.UpdateCsNotice)    // 修改站内公告
+		noticeRouter.DELETE("", csNoticeApi.DeleteCsNotice) // 删除站内公告
 	}
 	{
-		noticeRouterWithoutRecord.GET("", csNoticeApi.GetCsNotice)         // 获取消息通知详情
-		noticeRouterWithoutRecord.GET("list", csNoticeApi.GetCsNoticeList) // 分页获取消息通知列表
+		noticeRouterWithoutRecord.GET("", csNoticeApi.GetCsNotice)         // 获取站内公告详情
+		noticeRouterWithoutRecord.GET("list", csNoticeApi.GetCsNoticeList) // 分页获取站内公告列表
 	}
 }
