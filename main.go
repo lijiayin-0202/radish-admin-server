@@ -19,6 +19,9 @@ import (
 // @Tag.Name        Base
 // @Tag.Name        SysUser
 // @Tag.Description 用户
+// @Tag.Name        计价规则
+// @Tag.Name        运营区域
+// @Tag.Name        站点管理
 
 // @title                       Gin-Vue-Admin Swagger API接口文档
 // @version                     v2.9.2
