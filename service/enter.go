@@ -19,4 +19,5 @@ type ServiceGroup struct {
 	PricingRuleService
 	ServiceAreaService
 	StationService
+	OperationDispatchService
 }
