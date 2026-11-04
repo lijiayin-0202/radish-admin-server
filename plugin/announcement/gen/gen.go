@@ -5,6 +5,7 @@ package main
 //go:generate go run gen.go
 
 import (
+
 	"github.com/flipped-aurora/gin-vue-admin/server/plugin/announcement/model"
 	"gorm.io/gen"
 	"path/filepath"
