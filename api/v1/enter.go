@@ -19,4 +19,5 @@ type ApiGroup struct {
 	PricingRuleApi
 	ServiceAreaApi
 	StationApi
+	OperationDispatchApi
 }

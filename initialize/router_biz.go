@@ -21,6 +21,9 @@ func initBizRouter(routers ...*gin.RouterGroup) {
 	// 出行运营（模块1-4 后台视角）
 	router.RouterGroupApp.Trip.InitTripRouter(privateGroup)
 
+	// 运营调度管理
+	router.RouterGroupApp.OperationDispatchRouter.InitOperationDispatchRouter(privateGroup)
+
 	// 客服中心（模块5）
 	router.RouterGroupApp.Cs.InitCsRouter(privateGroup)
 
