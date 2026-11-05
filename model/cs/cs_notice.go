@@ -13,7 +13,6 @@ type CsNotice struct {
 	Type      int64  `json:"type" form:"type" gorm:"column:type;type:int;not null;default:1;comment:公告类型：1系统公告，2活动公告，3维护公告"`
 	Status    int64  `json:"status" form:"status" gorm:"column:status;type:int;not null;default:1;comment:状态：0草稿，1已发布"`
 	Sort      int64  `json:"sort" form:"sort" gorm:"column:sort;type:int;not null;default:0;comment:排序号"`
-	CreatedBy int64  `json:"createdBy" form:"createdBy" gorm:"column:created_by;type:bigint;not null;default:0;comment:创建者（操作人ID）"`
 }
 
 // TableName CsNotice 自定义表名 cs_notice

@@ -47,6 +47,38 @@ func (a *CsSessionApi) CreateCsSession(c *gin.Context) {
 	}, "创建成功", c)
 }
 
+// AcceptCsSession
+// @Tags      CsSession
+// @Summary   客服接单，将会话认领为当前登录客服，乐观锁防并发抢单
+// @Security  ApiKeyAuth
+// @accept    application/json
+// @Produce   application/json
+// @Param     data  body      request.GetById                true  "会话ID"
+// @Success   200   {object}  response.Response{msg=string}  "接单成功"
+// @Router    /api/cs/session/accept [post]
+func (a *CsSessionApi) AcceptCsSession(c *gin.Context) {
+	var idReq request.GetById
+	err := c.ShouldBindJSON(&idReq)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	err = utils.Verify(idReq, utils.IdVerify)
+	if err != nil {
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	operatorID := utils.GetUserID(c)
+	operatorName := utils.GetUserName(c)
+	err = csSessionService.AcceptCsSession(operatorID, operatorName, idReq.Uint())
+	if err != nil {
+		global.GVA_LOG.Error("客服接单失败!", zap.Error(err))
+		response.FailWithMessage(err.Error(), c)
+		return
+	}
+	response.OkWithMessage("接单成功", c)
+}
+
 // DeleteCsSession
 // @Tags      CsSession
 // @Summary   删除客服会话（软删除）

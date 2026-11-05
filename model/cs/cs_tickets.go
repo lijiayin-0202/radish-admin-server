@@ -19,7 +19,7 @@ type CsTicket struct {
 	OrderID           int64      `json:"orderId" form:"orderId" gorm:"column:order_id;type:bigint;not null;default:0;comment:关联订单ID"`
 	OrderNo           string     `json:"orderNo" form:"orderNo" gorm:"column:order_no;type:varchar(64);not null;default:'';comment:关联订单号"`
 	Status            int64      `json:"status" form:"status" gorm:"column:status;type:int;not null;default:1;comment:工单状态：1待处理，2处理中，3已关闭"`
-	Priority          int64      `json:"priority" form:"priority" gorm:"column:priority;type:bigint;not null;default:1;comment:优先级：1低，2中，3高"`
+	Priority          string     `json:"priority" form:"priority" gorm:"column:priority;type:varchar(32);comment:优先级：1低，2中，3高"`
 	Category          string     `json:"category" form:"category" gorm:"column:category;type:varchar(128);not null;default:'';comment:问题分类"`
 	Title             string     `json:"title" form:"title" gorm:"column:title;type:varchar(256);not null;default:'';comment:工单标题"`
 	Description       string     `json:"description" form:"description" gorm:"column:description;type:text;comment:问题描述"`

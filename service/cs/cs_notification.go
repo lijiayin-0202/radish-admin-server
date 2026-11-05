@@ -10,10 +10,10 @@ import (
 
 type CsNotificationService struct{}
 
-// 用户通知已读状态：0未读，1已读
+// 用户通知已读状态：false未读，true已读
 const (
-	CsNotificationUnread int64 = 0 // 未读
-	CsNotificationRead   int64 = 1 // 已读
+	CsNotificationUnread bool = false // 未读
+	CsNotificationRead   bool = true  // 已读
 )
 
 // 用户通知类型：1系统通知，2工单通知，3会话通知

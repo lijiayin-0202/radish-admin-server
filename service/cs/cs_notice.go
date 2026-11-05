@@ -43,12 +43,11 @@ func (s *CsNoticeService) CreateCsNotice(operatorID uint, req csReq.CsNoticeCrea
 		req.Status = 1
 	}
 	entity = csModel.CsNotice{
-		Title:     req.Title,
-		Content:   req.Content,
-		Type:      req.Type,
-		Status:    req.Status,
-		Sort:      req.Sort,
-		CreatedBy: int64(operatorID),
+		Title:   req.Title,
+		Content: req.Content,
+		Type:    req.Type,
+		Status:  req.Status,
+		Sort:    req.Sort,
 	}
 	err = global.LUOBO_DB.Create(&entity).Error
 	return

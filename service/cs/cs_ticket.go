@@ -117,7 +117,8 @@ func (s *CsTicketService) GetCsTicketList(search csReq.CsTicketSearch) (list []c
 // 工单号由 global.Snow 雪花ID自动生成，前端不传；新建工单固定为待处理
 func (s *CsTicketService) CreateCsTicket(operatorID uint, req csReq.CsTicketCreateReq) (entity csModel.CsTicket, err error) {
 	// 优先级取值：1低，2中，3高（与工单状态枚举无关，单独校验范围）
-	if req.Priority < 1 || req.Priority > 3 {
+	prio, err := strconv.Atoi(req.Priority)
+	if err != nil || prio < 1 || prio > 3 {
 		return entity, errors.New("工单优先级取值不合法，仅支持：1低，2中，3高")
 	}
 	entity = csModel.CsTicket{
@@ -154,8 +155,11 @@ func (s *CsTicketService) UpdateCsTicket(operatorID uint, req csReq.CsTicketUpda
 		return errors.New("工单不存在或已删除")
 	}
 	oldStatus := entity.Status // 记录变更前状态，供状态变更流水使用
-	if req.Priority != 0 && (req.Priority < 1 || req.Priority > 3) {
-		return errors.New("工单优先级取值不合法，仅支持：1低，2中，3高")
+	if req.Priority != "" {
+		prio, err := strconv.Atoi(req.Priority)
+		if err != nil || prio < 1 || prio > 3 {
+			return errors.New("工单优先级取值不合法，仅支持：1低，2中，3高")
+		}
 	}
 
 	// 状态流转校验
@@ -199,8 +203,8 @@ func (s *CsTicketService) UpdateCsTicket(operatorID uint, req csReq.CsTicketUpda
 	if req.AssignedClerkID != nil {
 		entity.AssignedClerkID = *req.AssignedClerkID
 	}
-	if req.Priority != 0 {
-		entity.Priority = req.Priority // 优先级为0表示不变更
+	if req.Priority != "" {
+		entity.Priority = req.Priority // 空字符串表示不变更
 	}
 	if req.ResolvedAt != nil {
 		entity.ResolvedAt = req.ResolvedAt // 解决时间空值不覆盖已有内容

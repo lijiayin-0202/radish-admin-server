@@ -18,10 +18,10 @@ type RouterGroup struct {
 }
 
 var (
-	csFaqApi         = api.ApiGroupApp.CsApiGroup.CsFaqApi
-	csTicketApi      = api.ApiGroupApp.CsApiGroup.CsTicketApi
-	csSessionApi     = api.ApiGroupApp.CsApiGroup.CsSessionApi
-	csMessageApi     = api.ApiGroupApp.CsApiGroup.CsMessageApi
+	csFaqApi          = api.ApiGroupApp.CsApiGroup.CsFaqApi
+	csTicketApi       = api.ApiGroupApp.CsApiGroup.CsTicketApi
+	csSessionApi      = api.ApiGroupApp.CsApiGroup.CsSessionApi
+	csMessageApi      = api.ApiGroupApp.CsApiGroup.CsMessageApi
 	csFaqCategoryApi  = api.ApiGroupApp.CsApiGroup.CsFaqCategoryApi
 	csNotificationApi = api.ApiGroupApp.CsApiGroup.CsNotificationApi
 	csNoticeApi       = api.ApiGroupApp.CsApiGroup.CsNoticeApi

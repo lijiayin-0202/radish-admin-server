@@ -149,18 +149,30 @@ func (s *CsSessionService) CreateCsSession(operatorID uint, req csReq.CsSessionC
 		Remark:    req.Remark,
 	}
 	if req.ClerkID != nil {
-		entity.ClerkID = *req.ClerkID // 入参指定客服时按指定分配，不消耗轮询游标
-	} else {
-		// 未指定客服：轮询自动分配；无可用客服直接返回业务错误，会话不落库
-		clerkID, clerkName, assignErr := assignCsClerk()
-		if assignErr != nil {
-			return entity, assignErr
-		}
-		entity.ClerkID = clerkID
-		entity.ClerkName = clerkName
+		entity.ClerkID = *req.ClerkID // 入参指定客服时按指定分配
 	}
+	// 未指定客服：clerk_id 保持默认 0（待分配/未接单），由「接单」接口认领
 	err = global.LUOBO_DB.Create(&entity).Error
 	return
+}
+
+// AcceptCsSession 客服接单：将会话 clerk_id / clerk_name 置为当前登录客服
+// 乐观锁：仅当 clerk_id = 0（待分配）时才更新，避免并发抢单；
+// 若更新行数为 0，说明该会话已被其他客服抢先接单（或不存在），返回业务提示
+func (s *CsSessionService) AcceptCsSession(operatorID uint, operatorName string, id uint) (err error) {
+	result := global.LUOBO_DB.Model(&csModel.CsSession{}).
+		Where("id = ? AND clerk_id = ?", id, 0).
+		Updates(map[string]interface{}{
+			"clerk_id":   int64(operatorID),
+			"clerk_name": operatorName,
+		})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("会话已被其他客服抢先接单")
+	}
+	return nil
 }
 
 // UpdateCsSession 修改客服会话，会话编号不允许修改

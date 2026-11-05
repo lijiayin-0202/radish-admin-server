@@ -35,7 +35,7 @@ type CsTicketCreateReq struct {
 	UserPhone         string `json:"userPhone"`         // 用户手机号
 	OrderID           *int64 `json:"orderId"`           // 关联订单ID，无订单可不传；传了则触发 ride-hailing 订单查询并回填订单号/乘客手机号
 	OrderNo           string `json:"orderNo"`           // 关联订单号，无订单可不传
-	Priority          int64  `json:"priority"`          // 优先级：1低，2中，3高，不传按库默认1
+	Priority          string `json:"priority"`          // 优先级：1低，2中，3高，不传按库默认1（varchar 字符串）
 	Category          string `json:"category"`          // 问题分类
 	Title             string `json:"title"`             // 工单标题
 	Description       string `json:"description"`       // 问题描述
@@ -54,7 +54,7 @@ type CsTicketUpdateReq struct {
 	UserPhone         string     `json:"userPhone"`         // 用户手机号
 	OrderID           *int64     `json:"orderId"`           // 关联订单ID
 	OrderNo           string     `json:"orderNo"`           // 关联订单号
-	Priority          int64      `json:"priority"`          // 优先级：1低，2中，3高
+	Priority          string     `json:"priority"`          // 优先级：1低，2中，3高（varchar 字符串）
 	Category          string     `json:"category"`          // 问题分类
 	Title             string     `json:"title"`             // 工单标题
 	Description       string     `json:"description"`       // 问题描述
@@ -248,7 +248,7 @@ type CsNotificationSearch struct {
 	UserID  *int64  `json:"userId" form:"userId"`   // 接收人用户ID
 	Title   string  `json:"title" form:"title"`     // 消息标题，模糊匹配
 	Keyword string  `json:"keyword" form:"keyword"` // 综合关键词，消息标题/消息内容 模糊匹配
-	IsRead  *int64  `json:"isRead" form:"isRead"`   // 是否已读：0未读，1已读
+	IsRead  *bool   `json:"isRead" form:"isRead"`   // 是否已读：false未读，true已读
 	Type    *int64  `json:"type" form:"type"`       // 消息类型：1系统通知，2工单通知，3会话通知
 }
 
@@ -268,7 +268,7 @@ type CsNotificationUpdateReq struct {
 	Title   string  `json:"title"`   // 消息标题
 	Content string  `json:"content"` // 消息内容
 	Type    *int64  `json:"type"`    // 消息类型：1系统通知，2工单通知，3会话通知，nil 不变更
-	IsRead  *int64  `json:"isRead"`  // 是否已读：0未读，1已读，nil 不变更
+	IsRead  *bool   `json:"isRead"`  // 是否已读：false未读，true已读，nil 不变更
 }
 
 // CsNotificationReadReq 标记用户通知已读入参

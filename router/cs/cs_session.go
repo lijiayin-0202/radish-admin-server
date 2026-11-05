@@ -11,9 +11,10 @@ func (r *CsSessionRouter) InitCsSessionRouter(Router *gin.RouterGroup) {
 	sessionRouter := Router.Group("session").Use(middleware.OperationRecord())
 	sessionRouterWithoutRecord := Router.Group("session")
 	{
-		sessionRouter.POST("", csSessionApi.CreateCsSession)    // 创建客服会话
-		sessionRouter.PUT("", csSessionApi.UpdateCsSession)     // 更新客服会话
-		sessionRouter.DELETE("", csSessionApi.DeleteCsSession)  // 删除客服会话
+		sessionRouter.POST("", csSessionApi.CreateCsSession)       // 创建客服会话
+		sessionRouter.PUT("", csSessionApi.UpdateCsSession)        // 更新客服会话
+		sessionRouter.DELETE("", csSessionApi.DeleteCsSession)     // 删除客服会话
+		sessionRouter.POST("accept", csSessionApi.AcceptCsSession) // 客服接单
 	}
 	{
 		sessionRouterWithoutRecord.GET("", csSessionApi.GetCsSession)         // 获取客服会话详情

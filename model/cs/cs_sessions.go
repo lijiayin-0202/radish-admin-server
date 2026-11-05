@@ -13,7 +13,7 @@ type CsSession struct {
 	global.GVA_MODEL
 	SessionNo      string     `json:"sessionNo" form:"sessionNo" gorm:"column:session_no;type:varchar(64);not null;default:'';comment:会话编号"`
 	UserID         int64      `json:"userId" form:"userId" gorm:"column:user_id;type:bigint;not null;default:0;comment:用户ID"`
-	UserName       string     `json:"userName" form:"userName" gorm:"column:user_name;type:varchar(128);not null;default:'';comment:用户姓名"`
+	UserName       string     `json:"userName" form:"userName" gorm:"column:user_name;type:varchar(128);default:'';comment:用户姓名"`
 	UserPhone      string     `json:"userPhone" form:"userPhone" gorm:"column:user_phone;type:varchar(32);not null;default:'';comment:用户手机号"`
 	ClerkID        int64      `json:"clerkId" form:"clerkId" gorm:"column:clerk_id;type:bigint;not null;default:0;comment:客服ID"`
 	ClerkName      string     `json:"clerkName" form:"clerkName" gorm:"column:clerk_name;type:varchar(128);not null;default:'';comment:客服姓名"`
