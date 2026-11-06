@@ -53,9 +53,9 @@ func tunePool(db *gorm.DB) {
 	if err != nil {
 		return
 	}
-	sqlDB.SetMaxOpenConns(20)            // 单库最大 20 条连接
-	sqlDB.SetMaxIdleConns(5)             // 最多保留 5 条空闲连接
-	sqlDB.SetConnMaxLifetime(time.Hour)  // 连接最长存活 1 小时，避免僵死连接
+	sqlDB.SetMaxOpenConns(20)           // 单库最大 20 条连接
+	sqlDB.SetMaxIdleConns(5)            // 最多保留 5 条空闲连接
+	sqlDB.SetConnMaxLifetime(time.Hour) // 连接最长存活 1 小时，避免僵死连接
 }
 
 // AutoMigrate 在 postgres 库补建缺失的业务表（仅新建表，不动已有表）
@@ -64,7 +64,11 @@ func AutoMigrate() error {
 	if db == nil {
 		return errors.New("postgres 业务库连接不可用")
 	}
-	return db.AutoMigrate(
+	return db.AutoMigrate(tripBusinessModels()...)
+}
+
+func tripBusinessModels() []interface{} {
+	return []interface{}{
 		&tripModel.Station{},
 		&tripModel.DispatchRecord{},
 		&tripModel.VehicleCommand{},
@@ -80,7 +84,8 @@ func AutoMigrate() error {
 		&tripModel.VehicleLocationLog{},
 		&tripModel.VehicleTelemetryLog{},
 		&tripModel.VehicleMediaRecord{},
-	)
+		&tripModel.OperationDispatch{},
+	}
 }
 
 // AutoMigrateCS 在 luobo 库补建/同步客服业务表（工单处理日志等）
