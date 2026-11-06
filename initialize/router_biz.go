@@ -24,8 +24,17 @@ func initBizRouter(routers ...*gin.RouterGroup) {
 	// 运营调度管理
 	router.RouterGroupApp.OperationDispatchRouter.InitOperationDispatchRouter(privateGroup)
 
-	// 客服中心（模块5）
-	router.RouterGroupApp.Cs.InitCsRouter(privateGroup)
+	// cs 客服模块：统一挂在 /api/cs 前缀下，继承 privateGroup 的 JWT + Casbin 鉴权
+	csGroup := privateGroup.Group("/api/cs")
+	csRouter := router.RouterGroupApp.Cs
+	csRouter.InitCsTicketRouter(csGroup)
+	csRouter.InitCsSessionRouter(csGroup)
+	csRouter.InitCsMessageRouter(csGroup)
+	csRouter.InitCsFaqRouter(csGroup)
+	csRouter.InitCsFaqCategoryRouter(csGroup)
+	csRouter.InitCsNotificationRouter(csGroup)
+	csRouter.InitCsNoticeRouter(csGroup)
+	csRouter.InitCsTicketLogRouter(csGroup)
 
 	holder(publicGroup, privateGroup)
 }

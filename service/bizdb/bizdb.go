@@ -100,6 +100,7 @@ func AutoMigrateCS() error {
 		&csModel.CsFaqCategory{},
 		&csModel.CsFaq{},
 		&csModel.CsNotification{},
+		&csModel.CsNotice{},
 		&csModel.CsTicketLog{},
 	); err != nil {
 		return err
