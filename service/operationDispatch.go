@@ -108,5 +108,4 @@ func (s *OperationDispatchService) GetDispatchList(info tripReq.OperationDispatc
 	err = q.Limit(pageSize).Offset(pageSize * (page - 1)).Order("id desc").Find(&list).Error
 	return
 
-
 }
