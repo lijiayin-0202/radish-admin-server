@@ -36,7 +36,7 @@ go vet ./...        # 静态检查，报错必修；风格类提示可暂缓
 ## 3. 第 2 步：启动（能跑起来）
 
 - [ ] `go run main.go`（或已构建的二进制）能正常启动，无 panic、无端口占用冲突。
-- [ ] 启动日志能正常连接 `global.GVA_DB`（gva 库）、`global.LUOBO_DB`（luobo 业务库）、`global.GVA_REDIS`；缺配置时有明确告警而不是静默失败。
+- [ ] 启动日志出现 `GVA 系统库与业务表统一使用 db-list[gvaPg]`、`register table success`、`init base data finished on db-list[gvaPg]`，且无旧数据源告警。
 - [ ] 浏览器/curl 能访问到健康检查或任一已有接口。
 
 ---

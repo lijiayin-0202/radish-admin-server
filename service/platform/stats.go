@@ -12,7 +12,7 @@ import (
 )
 
 // openDB 获取业务库连接。
-// 复用 bizdb 中 sync.Once 缓存的单连接池（postgres/luobo），
+// 复用 db-list[gvaPg] 的统一连接池；dbname 仅为兼容既有调用保留的语义参数，
 // 避免每次请求都 gorm.Open 新建池，导致大屏轮询把 PostgreSQL 连接打满
 // （曾报 FATAL: sorry, too many clients already / SQLSTATE 53300）。
 func openDB(dbname string) (*gorm.DB, error) {
@@ -67,7 +67,7 @@ func buildVehicleScope(q platformReq.DashboardQuery) (string, []interface{}) {
 
 // GetDashboardOverview 数据大屏聚合指标
 func (s *PlatformService) GetDashboardOverview(q platformReq.DashboardQuery) (res platformRes.DashboardOverview, err error) {
-	// 订单数据在 postgres 库
+	// 订单指标（db-list[gvaPg] 统一库）
 	ordersDB, err := openDB("postgres")
 	if err != nil {
 		return res, err
@@ -76,7 +76,7 @@ func (s *PlatformService) GetDashboardOverview(q platformReq.DashboardQuery) (re
 	if err != nil {
 		return res, err
 	}
-	// 客服数据在 luobo 库
+	// 客服指标（db-list[gvaPg] 统一库）
 	csDB, err := openDB("luobo")
 	if err != nil {
 		return res, err

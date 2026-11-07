@@ -27,11 +27,11 @@ func bizModel() error {
 	if err != nil {
 		return err
 	}
-	// 出行业务库（postgres 库）补建缺失业务表：站点/派单/指令/故障/核验/取消/费用/退款/车辆日志等
+	// db-list[gvaPg]：出行/调度缺失业务表（站点/派单/指令/故障/核验/取消/费用/退款/车辆日志等）
 	if err := bizdb.AutoMigrate(); err != nil {
 		global.GVA_LOG.Error("trip biz tables migrate failed", zap.Error(err))
 	}
-	// 客服业务库（luobo 库）补建/同步客服业务表：会话/工单/FAQ/通知/工单日志
+	// db-list[gvaPg]：客服业务表（会话/工单/FAQ/通知/工单日志）
 	if err := bizdb.AutoMigrateCS(); err != nil {
 		global.GVA_LOG.Error("cs biz tables migrate failed", zap.Error(err))
 	}

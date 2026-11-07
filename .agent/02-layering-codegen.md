@@ -11,7 +11,7 @@
 |----|------|------|------|
 | `router` | 路由注册、中间件挂载 | `Router.Group`、挂 `middleware.OperationRecord()` | 写业务逻辑 |
 | `api/v1` | 参数绑定 + `utils.Verify` 校验 + 调 service + `response.*` 返回 | 读 `utils.GetUserID(c)` | 写 SQL、直接操作 DB、跨层调别的 api |
-| `service` | 业务逻辑、事务编排、外部服务调用（HTTP/gRPC）、Kafka 收发；**GORM 数据库操作统一写在此** | 事务、日志、`global.LUOBO_DB` 上的链式 CRUD | 写 SQL、直接写 HTTP 响应 |
+| `service` | 业务逻辑、事务编排、外部服务调用（HTTP/gRPC）、Kafka 收发；**GORM 数据库操作统一写在此** | 事务、日志、`global.MustGetGlobalDBByDBName(global.GvaPgDB)` 上的链式 CRUD | 写 SQL、直接写 HTTP 响应 |
 | `model` | 表结构映射（结构体 + `TableName()` + 字段 tag），**只承载数据** | `global.GVA_MODEL`、`TableName()`、字段 tag | 定义 CRUD 成员方法、业务逻辑、事务编排 |
 | `request` | 入参（Search/CreateReq/UpdateReq） | 内嵌 `commonReq.PageInfo` | 与 model 混用 |
 | `response` | 出参 | 组合 model 返回 | 暴露敏感字段（密码、token） |
@@ -19,22 +19,22 @@
 **分层红线**：`api/v1` handler 不写 SQL；业务逻辑与 GORM 数据库操作只在 `service`；`model` 只定义结构与表名，不写 CRUD 方法。
 **禁止引入** Kratos、proto、biz、data、cmd、wire 相关代码或目录。
 
-### 1.1 双库隔离（P0，优先于本分册其他分层规则）
+### 1.1 单库统一（P0，优先于本分册其他分层规则）
 
 | 库 | 句柄 | 存放内容 | 禁止 |
 |----|------|----------|------|
-| gva 库 | `global.GVA_DB` | gin-vue-admin 原生系统表（`sys_*`、文件、jwt、通知、字典、权限等框架内置表） | **禁止新建任何业务表、业务 model**；业务代码不得往 gva 库写业务数据 |
-| luobo 库 | `global.LUOBO_DB` | 全部业务表（`cs_*` 客服、乘客、订单、钱包、优惠券等，含后续新增业务表） | 禁止把业务表建在 gva 库；禁止业务 model 使用 `GVA_DB` |
+| gva 库 | `global.GVA_DB` | gin-vue-admin 原生系统表（`sys_*`、文件、jwt、通知、字典、权限等框架内置表） | **与业务表同库（db-list[gvaPg]）** |
+| gva 库（db-list[gvaPg]） | `global.MustGetGlobalDBByDBName(global.GvaPgDB)` | 全部业务表（`cs_*` 客服、乘客、订单、钱包、优惠券等，含后续新增业务表） | 统一走 db-list[gvaPg]，禁止另起连接 |
 
-1. **严格隔离**：`GVA_DB` 只负责框架自带系统功能；所有业务 CRUD、业务表、业务 model 一律使用 `LUOBO_DB`；业务表禁止创建在 gva 库。
-2. **`GVA_MODEL` 只是字段结构体（重要）**：业务 model **可以**嵌入 `global.GVA_MODEL`，但**仅为复用 `ID`、`CreatedAt`、`UpdatedAt`、`DeletedAt` 四个字段**；`GVA_MODEL` **不会自动绑定任何数据库连接**。业务增删改查必须**显式使用 `global.LUOBO_DB` 操作 model 实例**，**禁止用 model 实例变量直接调用 GORM 方法**（Find / Create / Save / Updates / Delete 等），model 实例只作数据载体。
-3. **事务统一在 `service` 层开启**：业务事务使用 `global.LUOBO_DB.Transaction`；**禁止多层事务嵌套**；事务内部禁止发起外部 HTTP 调用、Kafka 同步发送。
-4. **只读统计**：允许基于 `global.LUOBO_DB` 开 GORM 只读 `Session`；**禁止**代码内单独 `gorm.Open` 新建 DB 连接、禁止手写 DSN。
+1. **统一数据源**：`GVA_DB` 只负责框架自带系统功能；所有业务 CRUD、业务表、业务 model 一律使用 `GvaPgDB`；业务表与系统表统一在 gva 库。
+2. **`GVA_MODEL` 只是字段结构体（重要）**：业务 model **可以**嵌入 `global.GVA_MODEL`，但**仅为复用 `ID`、`CreatedAt`、`UpdatedAt`、`DeletedAt` 四个字段**；`GVA_MODEL` **不会自动绑定任何数据库连接**。业务增删改查必须**显式使用 `global.MustGetGlobalDBByDBName(global.GvaPgDB)` 操作 model 实例**，**禁止用 model 实例变量直接调用 GORM 方法**（Find / Create / Save / Updates / Delete 等），model 实例只作数据载体。
+3. **事务统一在 `service` 层开启**：业务事务使用 `global.MustGetGlobalDBByDBName(global.GvaPgDB).Transaction`；**禁止多层事务嵌套**；事务内部禁止发起外部 HTTP 调用、Kafka 同步发送。
+4. **只读统计**：允许基于 `global.MustGetGlobalDBByDBName(global.GvaPgDB)` 开 GORM 只读 `Session`；**禁止**代码内单独 `gorm.Open` 新建 DB 连接、禁止手写 DSN。
 5. **向量查询参数化**：pgvector 查询必须参数绑定，禁止字符串拼接向量数组（详见分册 7 §2.4）。
 6. **SQL 日志**：开发环境可开 GORM `Debug`；测试、生产环境**禁止打印 SQL 绑定参数**。
-7. **链式起点必须是句柄**：所有 GORM 链式调用的**第一个接收者**必须是 `global.LUOBO_DB`（业务）或 `global.GVA_DB`（框架 `sys_*` 系统表）；**禁止以 model 结构体实例作为链式起点**。
+7. **链式起点必须是句柄**：所有 GORM 链式调用的**第一个接收者**必须是 `global.MustGetGlobalDBByDBName(global.GvaPgDB)`（业务）或 `global.GVA_DB`（框架 `sys_*` 系统表）；**禁止以 model 结构体实例作为链式起点**。
 8. **禁止在 model 上写 CRUD 方法**：不得为业务 model 结构体定义 Find / Create / Update / Delete / Save 等成员方法；数据库操作代码统一放在 `service` 层，`model` 只保留结构体、`TableName()`、字段 tag。
-9. **软删除统一走 `Delete`**：用 `global.LUOBO_DB.Delete(&entity)`，由 GORM 自动维护 `DeletedAt`；**禁止手动 `Update` 修改 `deleted_at` 字段**；查询已删除数据必须显式调用 `Unscoped()`。
+9. **软删除统一走 `Delete`**：用 `global.MustGetGlobalDBByDBName(global.GvaPgDB).Delete(&entity)`，由 GORM 自动维护 `DeletedAt`；**禁止手动 `Update` 修改 `deleted_at` 字段**；查询已删除数据必须显式调用 `Unscoped()`。
 
 ---
 
@@ -79,10 +79,10 @@ func (CsTicket) TableName() string { return "cs_tickets" }
 - 主键/单号统一雪花 ID：`global.Snow.NextID()`（`strconv.FormatInt` 转字符串存单号）。
 - 金额用 `decimal`，禁止 `float`；可空字段用指针（`*int64`、`*time.Time`）。
 - 每张表必须写 `TableName()`；字段必须有 `comment`。
-- **业务 model 对应 luobo 库表，统一使用 `global.LUOBO_DB`**；gva 库 `sys_*` 系统表**禁止新建业务 model、禁止扩展字段**。
-- **CRUD 入口只能是库句柄（写在 `service` 层）**：统一写 `global.LUOBO_DB.操作(&csModel.CsTicket{})`，例如 `global.LUOBO_DB.Model(&csModel.CsTicket{}).Where("status = ?", status).Find(&list)`、`global.LUOBO_DB.Create(&entity)`；model 实例只承载数据，**不得作为数据库入口**。
+- **业务 model 对应 gva 库业务表，统一使用 `global.MustGetGlobalDBByDBName(global.GvaPgDB)`**；gva 库 `sys_*` 系统表**禁止新建业务 model、禁止扩展字段**。
+- **CRUD 入口只能是库句柄（写在 `service` 层）**：统一写 `global.MustGetGlobalDBByDBName(global.GvaPgDB).操作(&csModel.CsTicket{})`，例如 `global.MustGetGlobalDBByDBName(global.GvaPgDB).Model(&csModel.CsTicket{}).Where("status = ?", status).Find(&list)`、`global.MustGetGlobalDBByDBName(global.GvaPgDB).Create(&entity)`；model 实例只承载数据，**不得作为数据库入口**。
 - **禁止写法**：用 model 实例变量调用 GORM 的 Find / Create / Save / Updates / Delete 一律禁止（实例上没有连接，即使能编译也不允许）。
-- **禁止**自造 `DeletedAt`、`IsDelete` 等删除字段；软删除统一 `global.LUOBO_DB.Delete(&entity)`，由 GORM 自动维护 `DeletedAt`。
+- **禁止**自造 `DeletedAt`、`IsDelete` 等删除字段；软删除统一 `global.MustGetGlobalDBByDBName(global.GvaPgDB).Delete(&entity)`，由 GORM 自动维护 `DeletedAt`。
 - **禁止手动改删除标记**：不得用 `Update` 修改 `deleted_at`；默认查询自动排除已删数据，**查已删除数据必须显式调用 `Unscoped()`**。
 - **禁止在 model 上写 CRUD 方法**：不得为业务 model 定义 Find / Create / Update / Delete / Save 等成员方法；GORM 调用代码统一写在 `service` 层。
 
@@ -98,16 +98,16 @@ func (s *CsTicketService) CreateCsTicket(operatorID uint, req csReq.CsTicketCrea
 		CreatedBy:   int64(operatorID),
 		UpdatedBy:   int64(operatorID),
 	}
-	return global.LUOBO_DB.Create(&entity).Error
+	return global.MustGetGlobalDBByDBName(global.GvaPgDB).Create(&entity).Error
 }
 ```
 
-- **业务数据源统一 `global.LUOBO_DB`**（luobo 库）；`global.GVA_DB` 仅用于框架 `sys_*` 等系统表，业务 CRUD 禁止使用。禁止另起连接、禁止手写 DSN。
-- 列表：`global.LUOBO_DB.Scopes(search.PageInfo.Paginate())` + `Count(&total)`，排序明确（链式首接收者必须是库句柄）。
+- **业务数据源统一 `global.MustGetGlobalDBByDBName(global.GvaPgDB)`**（gva 库（db-list[gvaPg]））；`global.GVA_DB` 仅用于框架 `sys_*` 等系统表，业务 CRUD 统一使用 `global.MustGetGlobalDBByDBName(global.GvaPgDB)`。禁止另起连接、禁止手写 DSN。
+- 列表：`global.MustGetGlobalDBByDBName(global.GvaPgDB).Scopes(search.PageInfo.Paginate())` + `Count(&total)`，排序明确（链式首接收者必须是库句柄）。
 - 更新：先 `First` 判存在，再赋值，`Save`；**单号、创建人等不可变字段不覆盖**。
-- 删除：`global.LUOBO_DB.Delete(&entity)` 软删除，禁止物理删除、禁止全表删除。
-- 事务：业务事务统一在 `service` 层用 `global.LUOBO_DB.Transaction(func(tx *gorm.DB) error { ... })` 开启；禁止嵌套事务；事务内禁止外部 HTTP 调用与 Kafka 同步发送；异常必须回滚并记录日志。
-- 条件拼接必须用参数绑定 `global.LUOBO_DB.Where("status = ?", status)`，**禁止字符串拼接 SQL**。
+- 删除：`global.MustGetGlobalDBByDBName(global.GvaPgDB).Delete(&entity)` 软删除，禁止物理删除、禁止全表删除。
+- 事务：业务事务统一在 `service` 层用 `global.MustGetGlobalDBByDBName(global.GvaPgDB).Transaction(func(tx *gorm.DB) error { ... })` 开启；禁止嵌套事务；事务内禁止外部 HTTP 调用与 Kafka 同步发送；异常必须回滚并记录日志。
+- 条件拼接必须用参数绑定 `global.MustGetGlobalDBByDBName(global.GvaPgDB).Where("status = ?", status)`，**禁止字符串拼接 SQL**。
 
 ---
 
@@ -176,4 +176,4 @@ func (r *CsTicketRouter) InitCsTicketRouter(Router *gin.RouterGroup) {
 4. 日志禁止输出手机号、密码、token、身份证等敏感数据。
 5. 禁止"顺手重构"：无明确指令不做大范围存量代码改写。
 6. 新增依赖、改表、改中间件均需先确认（Ask）。
-7. **双库隔离**：业务表、业务 model、业务事务只走 `global.LUOBO_DB`；`global.GVA_DB` 仅框架系统表，禁止建业务表、禁止写业务数据。
+7. **单库统一**：业务表、业务 model、业务事务只走 `global.MustGetGlobalDBByDBName(global.GvaPgDB)`；`global.GVA_DB` 已注入为 gvaPg，系统表与业务表统一在此库。

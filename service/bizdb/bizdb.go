@@ -2,73 +2,51 @@ package bizdb
 
 import (
 	"errors"
-	"sync"
-	"time"
+	"strings"
 
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	csModel "github.com/flipped-aurora/gin-vue-admin/server/model/cs"
 	tripModel "github.com/flipped-aurora/gin-vue-admin/server/model/trip"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
-// 萝卜快跑业务数据库连接管理
-// 业务事实表分布：postgres 库（乘客/订单/区域/站点/车辆/派单/指令/故障/核验/安全）
-// luobo 库（客服会话/工单/FAQ/通知）；GVA 主库 gva（global.GVA_DB）
+// 萝卜快跑业务表统一落在 db-list[gvaPg] 指向的 gva 库中：
+// 运营调度/乘客/订单等由 PostgresDB() 承载，客服会话/工单/FAQ 由 LuoboDB() 承载。
+// 两个函数返回同一个连接（global.MustGetGlobalDBByDBName(global.GvaPgDB)），
+// 不再分别连接 postgres / luobo 独立库；连接池由 DBList() 统一管理。
+// 注：PostgresDB / LuoboDB 仅为兼容既有 service 调用而保留的语义别名。
 
-var (
-	pgOnce, csOnce sync.Once
-	pgDB, csDB     *gorm.DB
-)
-
-// PostgresDB 出行业务库（postgres 库）
+// PostgresDB 运营调度、乘客相关业务表
 func PostgresDB() *gorm.DB {
-	pgOnce.Do(func() {
-		db, err := gorm.Open(postgres.Open(global.GVA_CONFIG.Pgsql.LinkDsn("postgres")), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-		if err == nil {
-			tunePool(db)
-			pgDB = db
-		}
-	})
-	return pgDB
+	return global.MustGetGlobalDBByDBName(global.GvaPgDB)
 }
 
-// LuoboDB 客服业务库（luobo 库）
+// LuoboDB 客服业务表（会话/工单/FAQ/通知）
 func LuoboDB() *gorm.DB {
-	csOnce.Do(func() {
-		db, err := gorm.Open(postgres.Open(global.GVA_CONFIG.Pgsql.LinkDsn("luobo")), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
-		if err == nil {
-			tunePool(db)
-			csDB = db
-		}
-	})
-	return csDB
+	return global.MustGetGlobalDBByDBName(global.GvaPgDB)
 }
 
-// tunePool 限制连接池大小，避免大屏轮询等高频请求把 PostgreSQL 连接打满
-// （曾出现 FATAL: sorry, too many clients already / SQLSTATE 53300）
-func tunePool(db *gorm.DB) {
-	sqlDB, err := db.DB()
-	if err != nil {
-		return
-	}
-	sqlDB.SetMaxOpenConns(20)           // 单库最大 20 条连接
-	sqlDB.SetMaxIdleConns(5)            // 最多保留 5 条空闲连接
-	sqlDB.SetConnMaxLifetime(time.Hour) // 连接最长存活 1 小时，避免僵死连接
-}
-
-// AutoMigrate 在 postgres 库补建缺失的业务表（仅新建表，不动已有表）
+// AutoMigrate 在 db-list[gvaPg] 指向的 gva 库补建缺失的业务表
 func AutoMigrate() error {
 	db := PostgresDB()
 	if db == nil {
-		return errors.New("postgres 业务库连接不可用")
+		return errors.New("gvaPg 业务库连接不可用")
 	}
 	return db.AutoMigrate(tripBusinessModels()...)
 }
 
 func tripBusinessModels() []interface{} {
 	return []interface{}{
+		// 核心业务表：原先由外部 SQL 建在 postgres 库，统一到 gva 库后必须纳入迁移，
+		// 否则订单/乘客/区域/车辆等页面会报 relation does not exist、列表无数据，
+		// passengers 也会因缺 deleted_at 报 SQLSTATE 42703。
+		&tripModel.Passenger{},
+		&tripModel.TripOrder{},
+		&tripModel.TripStatusLog{},
+		&tripModel.ServiceArea{},
+		&tripModel.Vehicle{},
+		&tripModel.SafetyIncident{},
+
 		&tripModel.Station{},
 		&tripModel.DispatchRecord{},
 		&tripModel.VehicleCommand{},
@@ -88,11 +66,11 @@ func tripBusinessModels() []interface{} {
 	}
 }
 
-// AutoMigrateCS 在 luobo 库补建/同步客服业务表（工单处理日志等）
+// AutoMigrateCS 在 db-list[gvaPg] 指向的 gva 库补建/同步客服业务表
 func AutoMigrateCS() error {
 	db := LuoboDB()
 	if db == nil {
-		return errors.New("luobo 客服业务库连接不可用")
+		return errors.New("gvaPg 客服业务库连接不可用")
 	}
 	if err := db.AutoMigrate(
 		&csModel.CsSession{},
@@ -100,14 +78,33 @@ func AutoMigrateCS() error {
 		&csModel.CsFaqCategory{},
 		&csModel.CsFaq{},
 		&csModel.CsNotification{},
-		&csModel.CsNotice{},
 		&csModel.CsTicketLog{},
 	); err != nil {
 		return err
 	}
-	// 将工单 status 由 varchar 迁移为 int（1待处理/2处理中/3已关闭），已为 int 时自动跳过
+	// 历史外部 SQL 建的 cs_tickets.status 为 varchar（中文状态），而 AutoMigrate
+	// 新建的表 status 已是 int。仅当列确为文本类型时才做转换，避免每次启动
+	// 在 int 列上执行 COALESCE(status,'') 产生 PG 类型错误日志。
+	if !csTicketStatusIsText(db) {
+		return nil
+	}
 	db.Exec("UPDATE cs_tickets SET status = CASE COALESCE(status,'') WHEN '待处理' THEN '1' WHEN '处理中' THEN '2' WHEN '已解决' THEN '3' WHEN '已关闭' THEN '3' ELSE '1' END WHERE status IS NOT NULL AND status <> ''")
 	db.Exec("ALTER TABLE cs_tickets ALTER COLUMN status TYPE integer USING status::integer")
 	db.Exec("ALTER TABLE cs_tickets ALTER COLUMN status SET DEFAULT 1")
 	return nil
+}
+
+func csTicketStatusIsText(db *gorm.DB) bool {
+	types, err := db.Migrator().ColumnTypes(&csModel.CsTicket{})
+	if err != nil {
+		return false
+	}
+	for _, column := range types {
+		if column.Name() != "status" {
+			continue
+		}
+		t := strings.ToLower(column.DatabaseTypeName())
+		return strings.Contains(t, "char") || strings.Contains(t, "text")
+	}
+	return false
 }

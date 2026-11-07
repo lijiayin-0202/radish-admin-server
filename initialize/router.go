@@ -102,7 +102,7 @@ func Routers() *gin.Engine {
 		router.RouterGroupApp.InitPricingRuleRouter(PrivateGroup)
 		router.RouterGroupApp.InitServiceAreaRouter(PrivateGroup)
 		router.RouterGroupApp.InitStationRouter(PrivateGroup)
-		router.RouterGroupApp.InitOperationDispatchRouter(PrivateGroup)
+		//router.RouterGroupApp.InitOperationDispatchRouter(PrivateGroup)
 
 	}
 
