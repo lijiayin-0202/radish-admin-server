@@ -3,6 +3,7 @@ package initialize
 import (
 	"os"
 
+	adapter "github.com/casbin/gorm-adapter/v3"
 	"github.com/flipped-aurora/gin-vue-admin/server/global"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/example"
 	"github.com/flipped-aurora/gin-vue-admin/server/model/system"
@@ -40,9 +41,11 @@ func RegisterTables() {
 		return
 	}
 
+	// global.GVA_DB 已由 UseGvaPgAsMainDB() 注入为 db-list[gvaPg]
 	db := global.GVA_DB
 	err := db.AutoMigrate(
 
+		adapter.CasbinRule{},
 		system.SysApi{},
 		system.SysIgnoreApi{},
 		system.SysUser{},

@@ -61,7 +61,7 @@ git switch -c feature/xxx      # 或 fix/ opt/ hotfix/ docs/ test/
 
 1. **先生成**：用 GVA 代码生成器产出 CRUD 骨架（model / request / response / api / service / router）。
 2. **再补齐**：
-   - `model`：字段与 DDL 对齐，可嵌入 `global.GVA_MODEL`（仅复用 ID/CreatedAt/UpdatedAt/DeletedAt，不绑定连接），CRUD 由 `global.LUOBO_DB` 发起。
+   - `model`：字段与 DDL 对齐，可嵌入 `global.GVA_MODEL`（仅复用 ID/CreatedAt/UpdatedAt/DeletedAt，不绑定连接），CRUD 由 `global.MustGetGlobalDBByDBName(global.GvaPgDB)` 发起。
    - `request`：Search / CreateReq / UpdateReq，单号类字段不出现在入参。
    - `service`：业务逻辑、事务、单号生成（`global.Snow`）、外部服务调用、Kafka 收发、向量检索。
    - `api`：参数校验规则（写在模块 `enter.go`）、swagger 注释、统一返回。

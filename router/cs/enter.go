@@ -1,29 +1,7 @@
 package cs
 
-import (
-	api "github.com/flipped-aurora/gin-vue-admin/server/api/v1"
-)
-
-// RouterGroup 客服中心与客服运营端路由组
-// 统一挂载在 /api/cs 前缀下，由 initialize/router_biz.go 注册
+// RouterGroup 客服中心路由集合
+// 集成方式：在 server/router/enter.go 的 RouterGroup 中追加 Cs cs.RouterGroup
 type RouterGroup struct {
-	CsFaqRouter
-	CsTicketRouter
-	CsSessionRouter
-	CsMessageRouter
-	CsFaqCategoryRouter
-	CsNotificationRouter
-	CsNoticeRouter
-	CsTicketLogRouter
+	CsRouter
 }
-
-var (
-	csFaqApi          = api.ApiGroupApp.CsApiGroup.CsFaqApi
-	csTicketApi       = api.ApiGroupApp.CsApiGroup.CsTicketApi
-	csSessionApi      = api.ApiGroupApp.CsApiGroup.CsSessionApi
-	csMessageApi      = api.ApiGroupApp.CsApiGroup.CsMessageApi
-	csFaqCategoryApi  = api.ApiGroupApp.CsApiGroup.CsFaqCategoryApi
-	csNotificationApi = api.ApiGroupApp.CsApiGroup.CsNotificationApi
-	csNoticeApi       = api.ApiGroupApp.CsApiGroup.CsNoticeApi
-	csTicketLogApi    = api.ApiGroupApp.CsApiGroup.CsTicketLogApi
-)

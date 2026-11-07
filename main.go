@@ -48,9 +48,10 @@ func initializeSystem() {
 	initialize.InitSnowflake()          // 初始化全局雪花ID生成器，供工单/会话等生成唯一编号，必须在 service 调用前完成
 	initialize.Timer()
 	initialize.DBList()
-	initialize.LuoboPgSql()   // 初始化业务库 luobo 连接，赋值给 global.LUOBO_DB
-	initialize.SetupHandlers() // 注册全局函数
+	initialize.UseGvaPgAsMainDB() // 权限表与业务表统一走 db-list[gvaPg]
+	initialize.SetupHandlers()    // 注册全局函数
 	if global.GVA_DB != nil {
-		initialize.RegisterTables() // 初始化表
+		initialize.RegisterTables() // 只做表迁移，不创建数据库
+		initialize.InitBaseData()   // 幂等初始化原生 GVA 菜单/接口/角色/管理员/casbin
 	}
 }

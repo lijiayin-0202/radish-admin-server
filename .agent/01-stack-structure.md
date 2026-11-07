@@ -11,7 +11,7 @@
 | 维度 | 选型 | 版本/说明 | 禁止事项 |
 |------|------|-----------|----------|
 | 管理后台框架 | **gin-vue-admin（GVA）** | Server 端 Go 模块 `github.com/flipped-aurora/gin-vue-admin/server`，Go 1.24+ | 禁止替换路由/鉴权底盘，禁止手改 `core/`、`middleware/` |
-| 关系数据库 | **PostgreSQL（gva / luobo 双库）** | gva 库 → `global.GVA_DB`（仅框架系统表，业务只读、禁建业务表）；luobo 库 → `global.LUOBO_DB`（业务库，全部业务读写） | 禁止 `AutoMigrate`，表结构只通过迁移脚本落地；禁止业务表建在 gva 库 |
+| 关系数据库 | **PostgreSQL（gva 单库 / db-list[gvaPg]）** | gva 库 → `global.GVA_DB`（权限表与业务表统一在此库）；gva 库（db-list[gvaPg]） → `global.MustGetGlobalDBByDBName(global.GvaPgDB)`（业务库，全部业务读写） | 启动时由 RegisterTables() 统一 AutoMigrate；业务表统一建在 gva 库 |
 | 向量数据库 | **PostgreSQL + pgvector** | 同 PG 实例 `CREATE EXTENSION vector`，列类型 `vector(dim)`；本次不新增资料外的向量业务，是否使用以现有 FAQ/知识库实现为准 | 禁止引入独立向量库（Milvus 等），禁止 float 数组代替 |
 | 消息队列 | **Kafka** | 仅用于**已存在的**订单状态、车辆指令、故障、客服事件异步解耦；topic/事件契约评审后冻结 | 禁止用 Redis/DB 轮询替代消息通道，禁止新增范围外事件 |
 | 缓存 | **Redis** | `global.GVA_REDIS`，沿用项目既有封装，缓存与会话 | 禁止把 Redis 当持久化存储，禁止另起客户端 |
@@ -32,7 +32,7 @@ radish-admin-server/
 ├─ router/            # 路由注册（enter.go 聚合 + 各模块 Router）
 ├─ initialize/        # 启动初始化：db、redis、router、snowflake 等
 ├─ middleware/        # 中间件（鉴权/操作日志/限流…）
-├─ global/            # 全局变量：GVA_DB、LUOBO_DB、GVA_LOG、GVA_CONFIG、GVA_REDIS、Snow
+├─ global/            # 全局变量：GVA_DB、GvaPgDB、GVA_LOG、GVA_CONFIG、GVA_REDIS、Snow
 ├─ config/            # 配置结构体与 config*.yaml
 ├─ utils/             # 公共工具（校验、JWT claims、上传…）
 ├─ resource/template  # 代码生成模板（autocode）
@@ -44,11 +44,11 @@ radish-admin-server/
 
 | 变量 | 用途 | 备注 |
 |------|------|------|
-| `global.GVA_DB` | **gva 库**：gin-vue-admin 原生系统表（`sys_*`、文件、jwt、通知、字典、权限等） | 业务代码只读，**禁止建业务表、禁止写业务数据** |
-| `global.LUOBO_DB` | **luobo 库**：业务库，全部业务表与业务 CRUD 走它 | 业务 model 统一用它；禁止 `gorm.Open` 另建连接、禁止手写 DSN |
+| `global.GVA_DB` | **gva 库**：gin-vue-admin 原生系统表（`sys_*`、文件、jwt、通知、字典、权限等） | 系统表与业务表共用，**系统表与业务表统一在此库** |
+| `global.MustGetGlobalDBByDBName(global.GvaPgDB)` | **gva 库（db-list[gvaPg]）**：业务库，全部业务表与业务 CRUD 走它 | 业务 model 统一用它；禁止 `gorm.Open` 另建连接、禁止手写 DSN |
 | `global.GVA_LOG` | zap 日志 | 禁止打印手机号、密码、token |
 | `global.Snow` | 雪花 ID（由 `initialize.InitSnowflake` 初始化） | 主键、业务单号统一用它 |
-| `global.GVA_CONFIG` | 配置（含 `LuoboPgsql`） | 敏感值走环境变量 |
+| `global.GVA_CONFIG` | 配置（含 db-list[gvaPg] 数据源） | 敏感值走环境变量 |
 
 ---
 
