@@ -24,6 +24,9 @@ func initBizRouter(routers ...*gin.RouterGroup) {
 	// 运营调度管理
 	router.RouterGroupApp.OperationDispatchRouter.InitOperationDispatchRouter(privateGroup)
 
+	// 模块 3 页面仅调用后台 BFF，由后台代为访问微服务。
+	router.RouterGroupApp.Module3.InitOperationManagementRouter(privateGroup)
+
 	// cs 客服模块：InitCsRouter 内部自行 Group("cs")，因此这里直接传 privateGroup。
 	// 前端 VITE_BASE_API=/api，Vite 代理会 rewrite 掉 /api 后再转发，
 	// 后端路由不能再带 /api，否则 /cs/... 请求会 404。
