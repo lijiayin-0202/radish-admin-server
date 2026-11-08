@@ -4,6 +4,7 @@ import (
 	"github.com/flipped-aurora/gin-vue-admin/server/router/cs"
 	"github.com/flipped-aurora/gin-vue-admin/server/router/example"
 	"github.com/flipped-aurora/gin-vue-admin/server/router/platform"
+	"github.com/flipped-aurora/gin-vue-admin/server/router/ride"
 	"github.com/flipped-aurora/gin-vue-admin/server/router/system"
 	"github.com/flipped-aurora/gin-vue-admin/server/router/trip"
 )
@@ -14,6 +15,7 @@ type RouterGroup struct {
 	System   system.RouterGroup
 	Example  example.RouterGroup
 	Platform platform.RouterGroup
+	Ride     ride.RouterGroup
 	Trip     trip.RouterGroup
 	Cs       cs.RouterGroup
 

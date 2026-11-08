@@ -43,6 +43,7 @@ func Routers() *gin.Engine {
 
 	systemRouter := router.RouterGroupApp.System
 	exampleRouter := router.RouterGroupApp.Example
+	rideRouter := router.RouterGroupApp.Ride
 	// 如果想要不使用nginx代理前端网页，可以修改 web/.env.production 下的
 	// VUE_APP_BASE_API = /
 	// VUE_APP_BASE_PATH = http://localhost
@@ -104,6 +105,10 @@ func Routers() *gin.Engine {
 		router.RouterGroupApp.InitStationRouter(PrivateGroup)
 		//router.RouterGroupApp.InitOperationDispatchRouter(PrivateGroup)
 
+		rideRouter.InitOrderRouter(PrivateGroup)     // 网约车订单与派车（/ride 前缀）
+		rideRouter.InitPassengerRouter(PrivateGroup) // 网约车乘客管理（/ride 前缀）
+		rideRouter.InitVehicleRouter(PrivateGroup)   // 网约车车辆管理（/ride 前缀）
+		rideRouter.InitDispatchRouter(PrivateGroup)  // 网约车派单记录（/ride 前缀）
 	}
 
 	//插件路由安装
