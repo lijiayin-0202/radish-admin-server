@@ -18,6 +18,7 @@ type Server struct {
 	Oracle Oracle          `mapstructure:"oracle" json:"oracle" yaml:"oracle"`
 	Sqlite Sqlite          `mapstructure:"sqlite" json:"sqlite" yaml:"sqlite"`
 	DBList []SpecializedDB `mapstructure:"db-list" json:"db-list" yaml:"db-list"`
+
 	// oss
 	Local        Local        `mapstructure:"local" json:"local" yaml:"local"`
 	Qiniu        Qiniu        `mapstructure:"qiniu" json:"qiniu" yaml:"qiniu"`

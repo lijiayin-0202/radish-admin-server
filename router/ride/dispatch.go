@@ -7,7 +7,7 @@ import (
 type DispatchRouter struct{}
 
 func (s *DispatchRouter) InitDispatchRouter(Router *gin.RouterGroup) {
-	dispatchRouter := Router.Group("trip/dispatch")
+	dispatchRouter := Router.Group("ride/dispatch")
 	{
 		dispatchRouter.GET("list", dispatchApi.ListDispatchRecords)
 	}

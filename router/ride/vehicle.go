@@ -7,7 +7,7 @@ import (
 type VehicleRouter struct{}
 
 func (s *VehicleRouter) InitVehicleRouter(Router *gin.RouterGroup) {
-	vehicleRouter := Router.Group("trip/vehicle")
+	vehicleRouter := Router.Group("ride/vehicle")
 	{
 		vehicleRouter.GET("list", vehicleApi.ListVehicles)
 		vehicleRouter.GET("detail", vehicleApi.GetVehicle)

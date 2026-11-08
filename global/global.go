@@ -22,6 +22,10 @@ import (
 	"gorm.io/gorm"
 )
 
+// GvaPgDB 是 db-list 中 GVA 系统库与全部业务表共用的 PostgreSQL 数据源别名。
+// 全项目统一通过 global.MustGetGlobalDBByDBName(global.GvaPgDB) 获取该实例。
+const GvaPgDB = "gvaPg"
+
 var (
 	GVA_DB        *gorm.DB
 	GVA_DBList    map[string]*gorm.DB

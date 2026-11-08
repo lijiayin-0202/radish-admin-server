@@ -28,7 +28,7 @@
 | 层 | 选型 | 说明 |
 |----|------|------|
 | 管理后台 | **gin-vue-admin（GVA）** | 单体后台框架不改底盘，业务在 `api/v1`、`service`、`model`、`router` 扩展 |
-| 数据库 | **PostgreSQL（双库隔离）** | gva 库 → `global.GVA_DB`（仅框架 `sys_*` 等系统表，禁止建业务表）；luobo 库 → `global.LUOBO_DB`（业务库，全部业务表与业务 model） |
+| 数据库 | **PostgreSQL（db-list[gvaPg] 单库）** | Navicat 预建的 gva 库；`global.GVA_DB` 由 `UseGvaPgAsMainDB()` 注入为 `global.MustGetGlobalDBByDBName(global.GvaPgDB)`，GVA 权限表（`sys_*` / `casbin_rule`）与全部业务表共用此连接；禁止 CREATE DATABASE |
 | 向量库 | **PostgreSQL + pgvector** | 同一 PG 实例启用 `vector` 扩展，禁止另起独立向量库；本次不新增资料外的向量业务，是否使用以现有 FAQ/知识库实现为准 |
 | 消息队列 | **Kafka** | 用于**已存在的**订单状态、车辆指令、故障、客服事件异步解耦；topic/事件契约需评审后冻结 |
 | 缓存 | **Redis** | `global.GVA_REDIS`，沿用项目既有封装；只做缓存/临时数据，禁止当持久化存储 |
@@ -46,7 +46,7 @@
 6. **数据安全**：`UPDATE/DELETE` 必须带 WHERE；SQL 必须参数绑定，禁止拼接；敏感信息（密码、密钥、token、手机号）只走环境变量/配置，日志禁止打印。
 7. **能跑通即可判定完成（开发初期口径）**：`go build ./...` 无 error → 服务能启动 → 新接口 Apipost 调通 → 页面打开无 Console 报错，四步齐即可；进入联调/上线前按分册 5 §6 加严。
 8. **分层红线**：`api/v1` handler 不写 SQL；业务逻辑与 GORM 数据库操作只在 `service`（`model` 不写 CRUD 方法）；**禁止引入 Kratos、proto、biz、data、cmd、wire 相关代码**。
-9. **双库隔离**：gva 库（`global.GVA_DB`）只放框架系统表，**禁止建业务表、禁止业务 model 用它**；业务表、业务 model、业务事务一律 luobo 库（`global.LUOBO_DB`）；业务事务在 `service` 层用 `LUOBO_DB.Transaction`，禁止嵌套、事务内禁止外部调用与 Kafka 同步发送（详见分册 3 §1.1、分册 7 §0）。
+9. **单库统一**：GVA 权限表（`sys_*` / `casbin_rule`）与全部业务表共用 `db-list[gvaPg]` 指向的 gva 库，统一通过 `global.MustGetGlobalDBByDBName(global.GvaPgDB)` 获取句柄；不再初始化 luobo/postgres 独立库，不再出现旧数据源告警。业务事务在 `service` 层用 `global.MustGetGlobalDBByDBName(global.GvaPgDB).Transaction`，禁止嵌套、事务内禁止外部调用与 Kafka 同步发送（详见分册 3 §1.1、分册 7 §0）。
 10. **不编造**：不得虚构不存在的接口、数据表、字段、配置项。
 
 ---
@@ -60,7 +60,7 @@ model 同级放 request/、response/
 ```
 - `api/v1`：只做参数绑定、`utils.Verify` 校验、调用 service、封装 `response.*` 返回，**禁止写 SQL、禁止直接操作 DB**。
 - `service`：业务逻辑、事务编排、外部服务调用、Kafka 收发、**全部 GORM 数据库调用**；禁止写裸 SQL、禁止把 DB 操作下沉到 model。
-- `model`：结构体 + `TableName()` + 字段 tag，**只承载数据**（GORM 调用写在 `service`；业务用 `global.LUOBO_DB`，`global.GVA_DB` 仅框架系统表）；可嵌入 `global.GVA_MODEL`（**仅复用 `ID/CreatedAt/UpdatedAt/DeletedAt` 字段，不自动绑定任何数据库连接**），**禁止自造删除字段、禁止定义 CRUD 成员方法**。
+- `model`：结构体 + `TableName()` + 字段 tag，**只承载数据**（GORM 调用写在 `service`；业务用 `global.MustGetGlobalDBByDBName(global.GvaPgDB)`，`global.GVA_DB` 已注入为 gvaPg）；可嵌入 `global.GVA_MODEL`（**仅复用 `ID/CreatedAt/UpdatedAt/DeletedAt` 字段，不自动绑定任何数据库连接**），**禁止自造删除字段、禁止定义 CRUD 成员方法**。
 - `request/response`：入参/出参结构体，分页统一内嵌 `commonReq.PageInfo`。
 - 单号类字段（`ticket_no`、`session_no` 等）由 service 层 `global.Snow.NextID()` 生成，**前端不传**。
 
@@ -118,8 +118,8 @@ swag init                 # 接口变更后执行（可延后到 PR 前）
 
 - [ ] 未改动框架底盘（`core/`、`middleware/`、`utils/`、系统表逻辑）
 - [ ] 骨架由生成器产出，人工改动仅落在业务层
-- [ ] model 可嵌入 `global.GVA_MODEL`（仅复用四字段、不绑定连接），CRUD 均由 `global.LUOBO_DB` 发起，无自造删除字段
-- [ ] 业务库统一 `global.LUOBO_DB`，业务表/业务 model 未落到 gva 库；SQL 参数绑定、WHERE 齐全
+- [ ] model 可嵌入 `global.GVA_MODEL`（仅复用四字段、不绑定连接），CRUD 均由 `global.MustGetGlobalDBByDBName(global.GvaPgDB)` 发起，无自造删除字段
+- [ ] 业务库统一 `global.MustGetGlobalDBByDBName(global.GvaPgDB)`，业务表/业务 model 已统一落到 gva 库；SQL 参数绑定、WHERE 齐全
 - [ ] 变更文件清单已输出，commit 按 `[类型] [版本号] 描述` 拆分提交（不带 `#编号`）
 - [ ] `go build ./...` 无 error，且本次改动未新增 vet 报错（第 1 步）
 - [ ] 服务能正常启动，日志无 panic（第 2 步）

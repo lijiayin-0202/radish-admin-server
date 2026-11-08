@@ -19,6 +19,9 @@ import (
 // @Tag.Name        Base
 // @Tag.Name        SysUser
 // @Tag.Description 用户
+// @Tag.Name        计价规则
+// @Tag.Name        运营区域
+// @Tag.Name        站点管理
 
 // @title                       Gin-Vue-Admin Swagger API接口文档
 // @version                     v2.9.2
@@ -42,10 +45,13 @@ func initializeSystem() {
 	global.GVA_LOG = core.Zap() // 初始化zap日志库
 	zap.ReplaceGlobals(global.GVA_LOG)
 	global.GVA_DB = initialize.Gorm() // gorm连接数据库
+	initialize.InitSnowflake()          // 初始化全局雪花ID生成器，供工单/会话等生成唯一编号，必须在 service 调用前完成
 	initialize.Timer()
 	initialize.DBList()
-	initialize.SetupHandlers() // 注册全局函数
+	initialize.UseGvaPgAsMainDB() // 权限表与业务表统一走 db-list[gvaPg]
+	initialize.SetupHandlers()    // 注册全局函数
 	if global.GVA_DB != nil {
-		initialize.RegisterTables() // 初始化表
+		initialize.RegisterTables() // 只做表迁移，不创建数据库
+		initialize.InitBaseData()   // 幂等初始化原生 GVA 菜单/接口/角色/管理员/casbin
 	}
 }

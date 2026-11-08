@@ -100,10 +100,15 @@ func Routers() *gin.Engine {
 		exampleRouter.InitCustomerRouter(PrivateGroup)                      // 客户路由
 		exampleRouter.InitFileUploadAndDownloadRouter(PrivateGroup)         // 文件上传下载功能路由
 		exampleRouter.InitAttachmentCategoryRouterRouter(PrivateGroup)      // 文件上传下载分类
-		rideRouter.InitOrderRouter(PrivateGroup)                            // 网约车订单与派车
-		rideRouter.InitPassengerRouter(PrivateGroup)                        // 网约车乘客管理
-		rideRouter.InitVehicleRouter(PrivateGroup)                          // 网约车车辆管理
-		rideRouter.InitDispatchRouter(PrivateGroup)                         // 网约车派单记录
+		router.RouterGroupApp.InitPricingRuleRouter(PrivateGroup)
+		router.RouterGroupApp.InitServiceAreaRouter(PrivateGroup)
+		router.RouterGroupApp.InitStationRouter(PrivateGroup)
+		//router.RouterGroupApp.InitOperationDispatchRouter(PrivateGroup)
+
+		rideRouter.InitOrderRouter(PrivateGroup)     // 网约车订单与派车（/ride 前缀）
+		rideRouter.InitPassengerRouter(PrivateGroup) // 网约车乘客管理（/ride 前缀）
+		rideRouter.InitVehicleRouter(PrivateGroup)   // 网约车车辆管理（/ride 前缀）
+		rideRouter.InitDispatchRouter(PrivateGroup)  // 网约车派单记录（/ride 前缀）
 	}
 
 	//插件路由安装

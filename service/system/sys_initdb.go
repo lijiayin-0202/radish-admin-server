@@ -152,7 +152,12 @@ func (initDBService *InitDBService) InitDB(conf request.InitDB) (err error) {
 	return nil
 }
 
-// createDatabase 创建数据库（ EnsureDB() 中调用 ）
+// createDatabase 创建数据库（仅被旧版 HTTP /init/initdb 的 EnsureDB() 调用）。
+//
+// 本项目 gva 数据库已由 Navicat 预先创建，禁止任何 CREATE DATABASE 逻辑：
+// 启动链路为 DBList() -> UseGvaPgAsMainDB() -> RegisterTables() -> InitBaseData()，
+// 其中 InitTablesAndData() 只做建表与灌数据，不调用 EnsureDB、不 WriteConfig。
+// 保留此函数仅为兼容 GVA 原生初始化代码（含 MySQL 分支），请勿在启动流程中调用。
 func createDatabase(dsn string, driver string, createSql string) error {
 	db, err := sql.Open(driver, dsn)
 	if err != nil {
@@ -200,4 +205,43 @@ func (a initSlice) Less(i, j int) bool {
 
 func (a initSlice) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
+}
+
+// InitTablesAndData 在「已存在」的数据库上执行建表 + 基础数据初始化。
+// 与 InitDB 的区别：不调用 EnsureDB（不执行 CREATE DATABASE）、不 WriteConfig、
+// 不覆盖 global.GVA_DB。数据由各 initializer 的 DataInserted() 保证幂等，
+// 菜单/接口/角色/管理员/casbin 均复用 source/system 中的原生 GVA 数据。
+func (initDBService *InitDBService) InitTablesAndData(ctx context.Context) error {
+	if len(initializers) == 0 {
+		return nil
+	}
+	sort.Sort(&initializers) // 保证有依赖的 initializer 排在后面执行
+
+	ctx = context.WithValue(ctx, "dbtype", global.GVA_CONFIG.System.DbType)
+	ctx = context.WithValue(ctx, "db", global.MustGetGlobalDBByDBName(global.GvaPgDB))
+	if ctx.Value("adminPassword") == nil {
+		ctx = context.WithValue(ctx, "adminPassword", "123456")
+	}
+
+	var initHandler TypedDBInitHandler
+	switch global.GVA_CONFIG.System.DbType {
+	case Pgsql:
+		initHandler = NewPgsqlInitHandler()
+	case Mssql:
+		initHandler = NewMssqlInitHandler()
+	case Sqlite:
+		initHandler = NewSqliteInitHandler()
+	default:
+		initHandler = NewMysqlInitHandler()
+	}
+
+	if err := initHandler.InitTables(ctx, initializers); err != nil {
+		return err
+	}
+	if err := initHandler.InitData(ctx, initializers); err != nil {
+		return err
+	}
+	initializers = initSlice{}
+	cache = map[string]*orderedInitializer{}
+	return nil
 }

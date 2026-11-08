@@ -12,3 +12,8 @@ log/
 # go编译产物
 *.exe
 *.log
+
+# 编译备份与运行时目录
+*.exe~
+uploads/
+package-lock.json

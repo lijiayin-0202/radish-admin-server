@@ -9,8 +9,8 @@ import (
 type OrderRouter struct{}
 
 func (s *OrderRouter) InitOrderRouter(Router *gin.RouterGroup) {
-	orderRouter := Router.Group("trip/order")
-	orderRouterWithRecord := Router.Group("trip/order").Use(middleware.OperationRecord())
+	orderRouter := Router.Group("ride/order")
+	orderRouterWithRecord := Router.Group("ride/order").Use(middleware.OperationRecord())
 	{
 		orderRouter.GET("list", orderApi.ListOrders)
 		orderRouter.GET("detail", orderApi.GetOrder)

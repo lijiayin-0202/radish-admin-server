@@ -48,23 +48,25 @@ cors:
       expose-headers: Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type
       allow-credentials: true
 db-list:
-  - type: ""
-    alias-name: ""
+  # GVA 系统库（sys_* / casbin_rule）与全部业务表共用的 PostgreSQL 实例。
+  # gva 库已由 Navicat 预先创建：此处只建立连接，禁止任何 CREATE DATABASE 逻辑。
+  - type: "pgsql"
+    alias-name: "gvaPg"
     prefix: ""
-    port: ""
-    config: ""
-    db-name: ""
-    username: ""
-    password: ""
-    path: ""
+    port: "5432"
+    config: "sslmode=disable"
+    db-name: "gva"
+    username: "user_kRnPGQ"
+    password: "password_2BD3JQ"
+    path: "101.96.206.96"
     engine: ""
-    log-mode: ""
+    log-mode: "error"
     max-idle-conns: 10
     max-open-conns: 100
     conn-max-lifetime: 0
     singular: false
     log-zap: false
-    disable: true
+    disable: false
 disk-list:
   - mount-point: /
 email:
